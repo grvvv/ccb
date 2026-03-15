@@ -4,6 +4,22 @@ const container = require('@containers/awilix');
 const { createImageLink } = require("../../utils/link-generator");
 const storage = container.resolve('storage');
 
+exports.getCategoryById = async (req, res) => {
+    try {
+        let cid = req.params.id;
+        let category = await Category.findById(cid)
+        
+        if (category){
+            category.image = createImageLink(category.image)
+        }
+        return res.status(200).json(category)
+    } catch (error) {
+        console.log(error.message)
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+
+};
+
 exports.createCategory = async (req, res) => {
     try {
         const { name, icon, parent, order } = req.body;
@@ -43,7 +59,7 @@ exports.getFeaturedCategories = async (req, res) => {
             parent: null
         })
             .sort({ order: 1 })
-            .select("name slug icon image");
+            .select("name slug icon image order");
 
         categories = categories.map(cat => ({
             ...cat.toObject(),
@@ -61,13 +77,13 @@ exports.getFeaturedCategories = async (req, res) => {
 
 exports.updateCategory = async (req, res) => {
     try {
-         const category = await Category.findByIdAndUpdate(
+        const category = await Category.findByIdAndUpdate(
             req.params.id,
             req.body,
             { new: true }
         );
 
-        return res.json({ message: "Category Updated", result: category });
+        return res.json(category);
     } catch (error) {
         return res.status(500).json({error: "Internal Server Error"})
     }

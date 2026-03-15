@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createCategory, getFeaturedCategories, updateCategory, toggleCategoryStatus } = require("./category.controller")
+const { createCategory, getFeaturedCategories, updateCategory, getCategoryById } = require("./category.controller")
 const { bsonChecker } = require('../../middlewares/policy.middleware');
 const upload = require('../../middlewares/storage.middleware');
 const authorize = require('../../middlewares/role.middleware');
@@ -14,7 +14,8 @@ router.get("/featured", getFeaturedCategories);
 // Admin
 router.use(access, authorize(['admin']))
 router.post("/add", upload.single("image"), createCategory);
-router.put("/:id", bsonChecker, updateCategory);
+router.put("/update/:id", bsonChecker, upload.single("image"), updateCategory);
+router.get("/:id", bsonChecker, getCategoryById);
 // router.patch("/:id/toggle", auth, role("admin"), toggleCategoryStatus);
 
 module.exports = router;

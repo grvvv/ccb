@@ -99,7 +99,7 @@ exports.updateProduct = async (req, res) => {
         req.body.productImages = productImages;
 
         let updatedProduct = await Product.findByIdAndUpdate(pid, req.body, {new: true});
-        return res.status(200).json({ message: 'Product Updated', result: updatedProduct});
+        return res.status(200).json(updatedProduct);
     } catch (error) {
         return res.status(500).json({ message: 'Internal Server Error' })
     }
