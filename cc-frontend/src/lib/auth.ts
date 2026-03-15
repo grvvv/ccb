@@ -29,10 +29,6 @@ export class AuthService {
     return !!localStorage.getItem('auth_token')
   }
 
-  getUser(): User | null {
-    return this.user
-  }
-
   getRole(): Role | null {
     return this.user?.role ?? null
   }

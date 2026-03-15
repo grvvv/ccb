@@ -32,6 +32,7 @@ import { Route as PublicCategorySlugRouteImport } from './routes/_public/categor
 import { Route as PubliccustomerOrdersRouteImport } from './routes/_public/(customer)/orders'
 import { Route as PubliccustomerCheckoutRouteImport } from './routes/_public/(customer)/checkout'
 import { Route as AdminProductsProductIdEditRouteImport } from './routes/admin/products/$productId.edit'
+import { Route as AdminCategoriesCategoryIdEditRouteImport } from './routes/admin/categories/$categoryId.edit'
 import { Route as AdminCarouselCarouselIdEditRouteImport } from './routes/admin/carousel/$carouselId.edit'
 
 const AdminRoute = AdminRouteImport.update({
@@ -149,6 +150,12 @@ const AdminProductsProductIdEditRoute =
     path: '/products/$productId/edit',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminCategoriesCategoryIdEditRoute =
+  AdminCategoriesCategoryIdEditRouteImport.update({
+    id: '/categories/$categoryId/edit',
+    path: '/categories/$categoryId/edit',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminCarouselCarouselIdEditRoute =
   AdminCarouselCarouselIdEditRouteImport.update({
     id: '/edit',
@@ -179,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/admin/orders': typeof AdminOrdersIndexRoute
   '/admin/products': typeof AdminProductsIndexRoute
   '/admin/carousel/$carouselId/edit': typeof AdminCarouselCarouselIdEditRoute
+  '/admin/categories/$categoryId/edit': typeof AdminCategoriesCategoryIdEditRoute
   '/admin/products/$productId/edit': typeof AdminProductsProductIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -203,6 +211,7 @@ export interface FileRoutesByTo {
   '/admin/orders': typeof AdminOrdersIndexRoute
   '/admin/products': typeof AdminProductsIndexRoute
   '/admin/carousel/$carouselId/edit': typeof AdminCarouselCarouselIdEditRoute
+  '/admin/categories/$categoryId/edit': typeof AdminCategoriesCategoryIdEditRoute
   '/admin/products/$productId/edit': typeof AdminProductsProductIdEditRoute
 }
 export interface FileRoutesById {
@@ -230,6 +239,7 @@ export interface FileRoutesById {
   '/admin/orders/': typeof AdminOrdersIndexRoute
   '/admin/products/': typeof AdminProductsIndexRoute
   '/admin/carousel/$carouselId/edit': typeof AdminCarouselCarouselIdEditRoute
+  '/admin/categories/$categoryId/edit': typeof AdminCategoriesCategoryIdEditRoute
   '/admin/products/$productId/edit': typeof AdminProductsProductIdEditRoute
 }
 export interface FileRouteTypes {
@@ -257,6 +267,7 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/products'
     | '/admin/carousel/$carouselId/edit'
+    | '/admin/categories/$categoryId/edit'
     | '/admin/products/$productId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/products'
     | '/admin/carousel/$carouselId/edit'
+    | '/admin/categories/$categoryId/edit'
     | '/admin/products/$productId/edit'
   id:
     | '__root__'
@@ -307,6 +319,7 @@ export interface FileRouteTypes {
     | '/admin/orders/'
     | '/admin/products/'
     | '/admin/carousel/$carouselId/edit'
+    | '/admin/categories/$categoryId/edit'
     | '/admin/products/$productId/edit'
   fileRoutesById: FileRoutesById
 }
@@ -480,6 +493,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProductsProductIdEditRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/categories/$categoryId/edit': {
+      id: '/admin/categories/$categoryId/edit'
+      path: '/categories/$categoryId/edit'
+      fullPath: '/admin/categories/$categoryId/edit'
+      preLoaderRoute: typeof AdminCategoriesCategoryIdEditRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/carousel/$carouselId/edit': {
       id: '/admin/carousel/$carouselId/edit'
       path: '/edit'
@@ -541,6 +561,7 @@ interface AdminRouteChildren {
   AdminCategoriesIndexRoute: typeof AdminCategoriesIndexRoute
   AdminOrdersIndexRoute: typeof AdminOrdersIndexRoute
   AdminProductsIndexRoute: typeof AdminProductsIndexRoute
+  AdminCategoriesCategoryIdEditRoute: typeof AdminCategoriesCategoryIdEditRoute
   AdminProductsProductIdEditRoute: typeof AdminProductsProductIdEditRoute
 }
 
@@ -554,6 +575,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCategoriesIndexRoute: AdminCategoriesIndexRoute,
   AdminOrdersIndexRoute: AdminOrdersIndexRoute,
   AdminProductsIndexRoute: AdminProductsIndexRoute,
+  AdminCategoriesCategoryIdEditRoute: AdminCategoriesCategoryIdEditRoute,
   AdminProductsProductIdEditRoute: AdminProductsProductIdEditRoute,
 }
 

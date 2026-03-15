@@ -26,6 +26,9 @@ function RouteComponent() {
         <div className="border rounded-lg p-4 shadow-sm">
           <h2 className="font-medium mb-2">Categories</h2>
           <div className="flex flex-col gap-2">
+            <Link to="/admin/categories" className="text-blue-600">
+              View Categories
+            </Link>
             <Link to="/admin/categories/new" className="text-blue-600">
               Add New Category
             </Link>

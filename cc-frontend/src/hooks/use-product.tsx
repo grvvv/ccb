@@ -46,9 +46,7 @@ export function useCreateProduct() {
   return useMutation({
     mutationFn: (productData: CreateProductFormDetails) => productService.create(productData),
     onSuccess: () => {
-      // Invalidate and refetch users list
       queryClient.invalidateQueries({ queryKey: ['products', 'list'] });
-      queryClient.invalidateQueries({ queryKey: ['products', 'names'] });
     },
     onError: (error) => {
       console.error('Failed to create user:', error);
