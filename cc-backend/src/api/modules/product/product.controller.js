@@ -9,44 +9,98 @@ const storage = container.resolve('storage');
 
 exports.addProduct = async (req, res) => {
   try {
-    const { name, category, description, price, sellingPrice } = req.body;
-    const files = req.files;
+    const {
+      name,
+      category,
+      description,
+      price,
+      sellingPrice,
+      sku,
+      stock,
+      weight,
+      dimensions,
+      b2bPricingTiers = [],
+      isCODAvailable
+    } = req.body;
 
-    if (!name || !category || !price || !sellingPrice) {
-      return res.status(400).json({
-        message: "Please provide all essential fields."
-      });
+    const files = req.files || [];
+    if (!name || !category || !price || !sellingPrice || !sku || !weight || !dimensions) {
+      return res.status(400).json({ message: "Missing required fields." });
     }
+
+    if (sellingPrice > price) return res.status(400).json({ message: "Selling price cannot be greater than MRP" })
+
+    const existingSKU = await Product.findOne({ sku });
+    if (existingSKU) return res.status(400).json({ message: "SKU already exists" });
 
     const existingCategory = await Category.findOne({
       _id: category,
       isActive: true
     });
 
-    if (!existingCategory) {
-      return res.status(400).json({
-        message: "Invalid or inactive category."
-      });
+    if (!existingCategory) return res.status(400).json({ message: "Invalid or inactive category." });
+
+    let baseSlug = slugify(name, { lower: true });
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (await Product.findOne({ slug })) {
+      slug = `${baseSlug}-${counter++}`;
     }
 
-    const productSlug = slugify(name, { lower: true });
-    req.body.slug = productSlug;
+    let parsedTiers;
 
-    const productImages = [];
-    for (const file of files) {
-      const result = await storage.uploadFile(file, {
-        subdir: "products",
-        filename: `${productSlug}-${Date.now()}`,
-        resize: { width: 1000 }
-      });
+    if (typeof b2bPricingTiers === "string") parsedTiers = JSON.parse(b2bPricingTiers);
+    else parsedTiers = b2bPricingTiers;
 
-      productImages.push(result.path);
+    if (parsedTiers.length > 0) {
+      parsedTiers.sort((a, b) => a.minQty - b.minQty);
+
+      for (let i = 0; i < parsedTiers.length; i++) {
+        const tier = parsedTiers[i];
+
+        if (!tier.minQty || !tier.price) return res.status(400).json({ message: "Invalid B2B tier data" });
+        if (tier.price > sellingPrice) return res.status(400).json({ message: "B2B price cannot exceed selling price" });
+
+        if (i > 0) {
+          const prev = parsedTiers[i - 1];
+
+          if (
+            prev.maxQty === null ||
+            (tier.minQty <= prev.maxQty)
+          ) return res.status(400).json({ message: "B2B pricing tiers overlap" });
+        }
+      }
     }
 
-    req.body.productImages = productImages;
-    req.body.thumbnail = productImages[0]
+    const uploadedImages = await Promise.all(
+      files.map(file =>
+        storage.uploadFile(file, {
+          subdir: "products",
+          filename: `${slug}-${Date.now()}`,
+          resize: { width: 1000 }
+        })
+      )
+    );
 
-    const product = await Product.create(req.body);
+    const imagePaths = uploadedImages.map(r => r.path);
+
+    const product = await Product.create({
+      name,
+      category,
+      description,
+      slug,
+      price,
+      sellingPrice,
+      sku,
+      stock,
+      weight,
+      dimensions: JSON.parse(dimensions),
+      b2bPricingTiers: parsedTiers,
+      isCODAvailable,
+      productImages: imagePaths,
+      thumbnail: imagePaths[0] || null
+    });
 
     return res.status(201).json({
       message: "Product Created",
@@ -54,56 +108,158 @@ exports.addProduct = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Internal Server Error" });
+    return res.status(500).json({
+      message: "Internal Server Error"
+    });
   }
 };
 
 exports.deleteProduct = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const product = await Product.findByIdAndDelete(id);
-        if (!product) return res.status(404).json({ message: 'Product not found' });
+  try {
+    const { id } = req.params;
 
-        for (const image of product.productImages){
-            await storage.deleteFile(image)
-        }
-        
-        return res.status(200).json({ message: 'Product Deleted' });
-    } catch (error) {
-        return res.status(500).json({ message: 'Internal Server Error' });
+    const product = await Product.findByIdAndDelete(id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
     }
-}
+
+    // delete images in parallel
+    await Promise.all(
+      product.productImages.map(img => storage.deleteFile(img))
+    );
+
+    return res.status(200).json({ message: 'Product Deleted' });
+
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
 
 exports.updateProduct = async (req, res) => {
-    try {
-        let pid = req.params.id
-        const product = await Product.findById(pid);
-        const files = req.files; 
+  try {
+    const pid = req.params.id;
+    const product = await Product.findById(pid);
 
-        const productImages = [];
-        for (const file of files) {
-            const result = await storage.uploadFile(file, {
-                subdir: `products`,
-                filename: `product-${Date.now()}`,
-                resize: { width: 1000 }
-            });
+    if (!product)  res.status(404).json({ message: 'Product not found' });
+    const files = req.files || [];
+    let updateData = { ...req.body };
 
-            productImages.push(result.path);
-        }
+    if (
+      updateData.price !== undefined ||
+      updateData.sellingPrice !== undefined
+    ) {
+      const price = updateData.price ?? product.price;
+      const sellingPrice = updateData.sellingPrice ?? product.sellingPrice;
 
-        for (const image of product.productImages){
-            await storage.deleteFile(image)
-        }
-
-        req.body.productImages = productImages;
-
-        let updatedProduct = await Product.findByIdAndUpdate(pid, req.body, {new: true});
-        return res.status(200).json(updatedProduct);
-    } catch (error) {
-        return res.status(500).json({ message: 'Internal Server Error' })
+      if (sellingPrice > price) {
+        return res.status(400).json({
+          message: "Selling price cannot be greater than MRP"
+        });
+      }
     }
-}
+
+    if (updateData.sku && updateData.sku !== product.sku) {
+      const existingSKU = await Product.findOne({ sku: updateData.sku });
+      if (existingSKU) return res.status(400).json({ message: "SKU already exists" });
+    }
+
+    if (updateData.category) {
+      const existingCategory = await Category.findOne({
+        _id: updateData.category,
+        isActive: true
+      });
+      if (!existingCategory) return res.status(400).json({ message: "Invalid or inactive category." });
+    }
+
+    if (updateData.dimensions) {
+      const { length, width, height } = updateData.dimensions;
+
+      if (
+        length === undefined ||
+        width === undefined ||
+        height === undefined
+      ) {
+        return res.status(400).json({
+          message: "All dimension fields (length, width, height) are required"
+        });
+      }
+    }
+
+    if (updateData.b2bPricingTiers) {
+      let parsedTiers = [];
+
+      if (typeof updateData.b2bPricingTiers === "string") {
+        parsedTiers = JSON.parse(updateData.b2bPricingTiers);
+      } else {
+        parsedTiers = updateData.b2bPricingTiers;
+      }
+
+      if (parsedTiers.length > 0) {
+        parsedTiers.sort((a, b) => a.minQty - b.minQty);
+
+        for (let i = 0; i < parsedTiers.length; i++) {
+          const tier = parsedTiers[i];
+
+          if (!tier.minQty || !tier.price) return res.status(400).json({ message: "Invalid B2B tier data" })
+          if (tier.price > (updateData.sellingPrice ?? product.sellingPrice)) {
+            return res.status(400).json({  message: "B2B price cannot exceed selling price" });
+          }
+
+          if (i > 0) {
+            const prev = parsedTiers[i - 1];
+
+            if (
+              prev.maxQty === null ||
+              (tier.minQty <= prev.maxQty)
+            ) {
+              return res.status(400).json({ message: "B2B pricing tiers overlap" });
+            }
+          }
+        }
+      }
+
+      updateData.b2bPricingTiers = parsedTiers;
+    }
+
+    let productImages = product.productImages;
+    if (files.length > 0) {
+      const uploaded = await Promise.all(
+        files.map(file =>
+          storage.uploadFile(file, {
+            subdir: "products",
+            filename: `product-${Date.now()}`,
+            resize: { width: 1000 }
+          })
+        )
+      );
+
+      const newImages = uploaded.map(r => r.path);
+      await Promise.all(
+        product.productImages.map(img => storage.deleteFile(img))
+      );
+
+      productImages = newImages;
+    }
+
+    updateData.productImages = productImages;
+    updateData.thumbnail = productImages[0] || null;
+
+    // ✅ Final update
+    const updatedProduct = await Product.findByIdAndUpdate(
+      pid,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    return res.status(200).json(updatedProduct);
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: 'Internal Server Error'
+    });
+  }
+};
 
 exports.allProducts = async (req, res) => {
   try {
@@ -121,7 +277,6 @@ exports.allProducts = async (req, res) => {
       filter.category = category._id
     }
 
-    // search filter
     if (search) { filter.name = { $regex: search, $options: "i" } }
 
     const products = await Product.find(filter)
@@ -146,25 +301,34 @@ exports.allProducts = async (req, res) => {
     })
 
   } catch (error) {
+    console.log(error.message)
     return res.status(500).json({
       message: "Internal Server Error"
     })
   }
 }
+
 exports.productById = async (req, res) => {
-    try {
-        let pid = req.params.id;
-        let product = await Product.findById(pid)
-        let category = await Category.findById(product.category)
-        product.category = category.name
-        if (product){
-            product.productImages = product.productImages.map((img) => {
-                return createImageLink(img)
-            })
-        }
-        return res.status(200).json(product)
-    } catch (error) {
-        console.log(error.message)
-        return res.status(500).json({ message: 'Internal Server Error' });
+  try {
+    const pid = req.params.id;
+
+    const product = await Product.findById(pid).populate("category", "name");
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
     }
-}
+
+    const formatted = {
+      ...product.toObject(),
+      category: product.category?.name,
+      productImages: product.productImages.map(img => createImageLink(img)),
+      thumbnail: createImageLink(product.thumbnail)
+    };
+
+    return res.status(200).json(formatted);
+
+  } catch (error) {
+    console.log(error.message);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};

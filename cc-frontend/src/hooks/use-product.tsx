@@ -1,7 +1,6 @@
 
 import { productService } from '@/services/product.service';
 import type { CreateProductFormDetails } from '@/types/product';
-// import type { CreateProductDetails } from '@/types/product';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export function useProductDetails(productId: string) {

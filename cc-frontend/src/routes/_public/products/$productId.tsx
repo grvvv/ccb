@@ -3,7 +3,7 @@ import { createFileRoute, useParams } from '@tanstack/react-router';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
-import { Minus, Plus, Share2, Truck, Shield, RotateCcw } from 'lucide-react';
+import { Minus, Plus, Share2 } from 'lucide-react';
 import { AddToCartButton } from '@/components/features/cart/add-to-cart-button';
 
 export const Route = createFileRoute('/_public/products/$productId')({
@@ -13,7 +13,6 @@ export const Route = createFileRoute('/_public/products/$productId')({
 function RouteComponent() {
   const { productId } = useParams({ from: '/_public/products/$productId' });
   const { data: product, isLoading, error } = useProductDetails(productId);
-  
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
 
@@ -54,12 +53,13 @@ function RouteComponent() {
     );
   }
 
+  const isOutOfStock = product.stock <= 0;
   const discount = product.price && product.sellingPrice 
     ? Math.round(((product.price - product.sellingPrice) / product.price) * 100)
     : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="max-w-7xl mx-auto px-6 py-4 space-y-4">
 
       <div className="container mx-auto px-4 py-8 lg:py-12">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
@@ -130,6 +130,41 @@ function RouteComponent() {
               )}
             </div>
 
+            <div>
+              {isOutOfStock ? (
+                <span className="text-red-500 font-semibold">Out of Stock</span>
+              ) : (
+                <span className="text-green-600 font-medium">
+                  In Stock ({product.stock} available)
+                </span>
+              )}
+            </div>
+
+            <div className="text-sm">
+              <span className="text-muted-foreground">Cash on Delivery: </span>
+              <span className={product.isCODAvailable ? "text-green-600" : "text-red-500"}>
+                {product.isCODAvailable ? "Available" : "Not Available"}
+              </span>
+            </div>
+
+            {product.b2bPricingTiers?.length > 0 && (
+              <div className="space-y-3 pt-4 border-t border-border">
+                <h3 className="text-lg font-semibold text-foreground">Bulk Pricing</h3>
+                <div className="space-y-2 text-sm">
+                  {product.b2bPricingTiers.map((tier, idx) => (
+                    <div key={idx} className="flex justify-between border-b py-2">
+                      <span className="text-muted-foreground">
+                        {tier.minQty} - {tier.maxQty ?? "∞"} units
+                      </span>
+                      <span className="font-medium text-foreground">
+                        ₹{tier.price}/unit
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Description */}
             {product.description && (
               <div className="space-y-2">
@@ -168,41 +203,20 @@ function RouteComponent() {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <AddToCartButton product={product} qty={quantity} className="flex-1 h-12" />
-              <Button variant="outline" className="flex-1 h-12">
+              <AddToCartButton 
+                product={product} 
+                qty={quantity} 
+                className="flex-1 h-12"
+                disabled={isOutOfStock}
+              />
+
+              <Button 
+                variant="outline" 
+                className="flex-1 h-12"
+                disabled={isOutOfStock}
+              >
                 Buy Now
               </Button>
-            </div>
-
-            {/* Features */}
-            <div className="grid sm:grid-cols-3 gap-4 pt-6 border-t border-border">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-secondary">
-                  <Truck className="w-5 h-5 text-secondary-foreground" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-sm text-foreground">Free Shipping</h4>
-                  <p className="text-xs text-muted-foreground">On orders over ₹500</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-secondary">
-                  <RotateCcw className="w-5 h-5 text-secondary-foreground" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-sm text-foreground">Easy Returns</h4>
-                  <p className="text-xs text-muted-foreground">30-day return policy</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-secondary">
-                  <Shield className="w-5 h-5 text-secondary-foreground" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-sm text-foreground">Secure Payment</h4>
-                  <p className="text-xs text-muted-foreground">100% protected</p>
-                </div>
-              </div>
             </div>
 
             {/* Product Details */}
@@ -216,6 +230,22 @@ function RouteComponent() {
                 <div className="flex justify-between py-2">
                   <span className="text-muted-foreground">Availability</span>
                   <span className="font-medium text-primary">In Stock</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">SKU</span>
+                  <span className="font-medium text-foreground">{product.sku}</span>
+                </div>
+
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Weight</span>
+                  <span className="font-medium text-foreground">{product.weight} g</span>
+                </div>
+
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Dimensions</span>
+                  <span className="font-medium text-foreground">
+                    {product.dimensions?.length} × {product.dimensions?.width} × {product.dimensions?.height} cm
+                  </span>
                 </div>
               </div>
             </div>

@@ -10,15 +10,16 @@ type Props = {
   qty?: number;
   className?: string;
   variant?: "default" | "outline";
+  disabled?: boolean;
 };
 
-export function AddToCartButton({ product, qty = 1, className, variant = "default" }: Props) {
+export function AddToCartButton({ product, qty = 1, className, disabled, variant = "default" }: Props) {
   const { mutate, isPending, isSuccess } = useAddToCart();
 
   return (
     <Button
         variant={variant}
-        disabled={isPending}
+        disabled={disabled || isPending}
         onClick={() => mutate({ product, qty })}
         className={cn("gap-2", className)}
     >

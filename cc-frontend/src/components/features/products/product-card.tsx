@@ -24,6 +24,7 @@ export default function ProductCard({
 
   const handleAddToCart = () => {
     setAdded(true);
+    console.log(product)
     mutate({product, qty: 1});
     setTimeout(() => setAdded(false), 1500);
   };
