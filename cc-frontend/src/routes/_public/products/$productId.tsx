@@ -1,9 +1,9 @@
 import { useProductDetails } from '@/hooks/use-product';
-import { createFileRoute, useParams } from '@tanstack/react-router';
+import { createFileRoute, useNavigate, useParams } from '@tanstack/react-router';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
-import { Minus, Plus, Share2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Minus, Plus } from 'lucide-react';
 import { AddToCartButton } from '@/components/features/cart/add-to-cart-button';
 
 export const Route = createFileRoute('/_public/products/$productId')({
@@ -15,18 +15,43 @@ function RouteComponent() {
   const { data: product, isLoading, error } = useProductDetails(productId);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [isBuyingNow, setIsBuyingNow] = useState(false);
+  const navigate = useNavigate();
 
   const incrementQuantity = () => setQuantity(prev => prev + 1);
   const decrementQuantity = () => setQuantity(prev => prev > 1 ? prev - 1 : 1);
+
+  // Derive active bulk pricing tier based on current quantity
+  const activeTier = useMemo(() => {
+    if (!product?.b2bPricingTiers?.length) return null;
+    return (
+      [...product.b2bPricingTiers]
+        .sort((a, b) => a.minQty - b.minQty)
+        .findLast(tier => quantity >= tier.minQty) ?? null
+    );
+  }, [product?.b2bPricingTiers, quantity]);
+
+  // Effective price: tier price overrides selling price when a tier is active
+  const effectivePrice = activeTier?.price ?? product?.sellingPrice;
+
+  const handleBuyNow = () => {
+    if (!product) return;
+    navigate({
+      to: '/checkout',
+      search: {
+        productId: product._id,
+        quantity,
+        price: effectivePrice,
+      },
+    });
+  };
 
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Internal Server Error</h2>
-          <a href="/products" className="text-primary hover:underline">
-            Go back to products
-          </a>
+          <a href="/products" className="text-primary hover:underline">Go back to products</a>
         </div>
       </div>
     );
@@ -45,27 +70,24 @@ function RouteComponent() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-foreground mb-2">Product not found</h2>
-          <a href="/products" className="text-primary hover:underline">
-            Go back to products
-          </a>
+          <a href="/products" className="text-primary hover:underline">Go back to products</a>
         </div>
       </div>
     );
   }
 
   const isOutOfStock = product.stock <= 0;
-  const discount = product.price && product.sellingPrice 
-    ? Math.round(((product.price - product.sellingPrice) / product.price) * 100)
+  const discount = product.price && effectivePrice
+    ? Math.round(((product.price - effectivePrice) / product.price) * 100)
     : 0;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-4 space-y-4">
-
       <div className="container mx-auto px-4 py-8 lg:py-12">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+
           {/* Image Gallery */}
           <div className="space-y-4">
-            {/* Main Image */}
             <div className="aspect-square rounded-lg border border-border bg-card overflow-hidden">
               <img
                 src={product.productImages?.[selectedImage] || "/api/placeholder/600/600"}
@@ -73,8 +95,6 @@ function RouteComponent() {
                 className="w-full h-full object-cover"
               />
             </div>
-
-            {/* Thumbnail Gallery */}
             {product.productImages && product.productImages.length > 1 && (
               <div className="grid grid-cols-4 gap-3">
                 {product.productImages.map((image, index) => (
@@ -100,27 +120,16 @@ function RouteComponent() {
 
           {/* Product Details */}
           <div className="space-y-6">
-            {/* Title and Actions */}
             <div>
               <div className="flex items-start justify-between gap-4 mb-2">
                 <h1 className="text-3xl lg:text-4xl font-bold text-foreground">{product.name}</h1>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full border border-border"
-                  >
-                    <Share2 className="w-5 h-5" />
-                  </Button>
-                </div>
               </div>
-
             </div>
 
-            {/* Price */}
+            {/* Price — reflects active tier */}
             <div className="flex items-center gap-3">
-              <span className="text-4xl font-bold text-foreground">₹{product.sellingPrice}</span>
-              {product.price && product.price > product.sellingPrice && (
+              <span className="text-4xl font-bold text-foreground">₹{effectivePrice}</span>
+              {product.price && product.price > effectivePrice && (
                 <>
                   <span className="text-2xl text-muted-foreground line-through">₹{product.price}</span>
                   <span className="px-3 py-1 bg-primary text-primary-foreground text-sm font-semibold rounded-full">
@@ -128,15 +137,18 @@ function RouteComponent() {
                   </span>
                 </>
               )}
+              {activeTier && (
+                <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                  Bulk rate applied
+                </span>
+              )}
             </div>
 
             <div>
               {isOutOfStock ? (
                 <span className="text-red-500 font-semibold">Out of Stock</span>
               ) : (
-                <span className="text-green-600 font-medium">
-                  In Stock ({product.stock} available)
-                </span>
+                <span className="text-green-600 font-medium">In Stock ({product.stock} available)</span>
               )}
             </div>
 
@@ -147,25 +159,40 @@ function RouteComponent() {
               </span>
             </div>
 
+            {/* Bulk Pricing Table — highlights active tier */}
             {product.b2bPricingTiers?.length > 0 && (
               <div className="space-y-3 pt-4 border-t border-border">
                 <h3 className="text-lg font-semibold text-foreground">Bulk Pricing</h3>
-                <div className="space-y-2 text-sm">
-                  {product.b2bPricingTiers.map((tier, idx) => (
-                    <div key={idx} className="flex justify-between border-b py-2">
-                      <span className="text-muted-foreground">
-                        {tier.minQty} - {tier.maxQty ?? "∞"} units
-                      </span>
-                      <span className="font-medium text-foreground">
-                        ₹{tier.price}/unit
-                      </span>
-                    </div>
-                  ))}
+                <div className="space-y-1 text-sm">
+                  {[...product.b2bPricingTiers]
+                    .sort((a, b) => a.minQty - b.minQty)
+                    .map((tier, idx) => {
+                      const isActive = activeTier === tier;
+                      return (
+                        <div
+                          key={idx}
+                          className={`flex justify-between items-center px-3 py-2 rounded-md border transition-colors ${
+                            isActive
+                              ? 'border-primary bg-primary/5 text-foreground font-semibold'
+                              : 'border-transparent hover:bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          <span>{tier.minQty}–{tier.maxQty ?? '∞'} units</span>
+                          <div className="flex items-center gap-2">
+                            <span className={isActive ? 'text-primary' : ''}>
+                              ₹{tier.price}/unit
+                            </span>
+                            {isActive && (
+                              <span className="text-xs text-primary font-normal">(active)</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             )}
 
-            {/* Description */}
             {product.description && (
               <div className="space-y-2">
                 <h2 className="text-lg font-semibold text-foreground">Description</h2>
@@ -186,9 +213,13 @@ function RouteComponent() {
                   >
                     <Minus className="w-4 h-4" />
                   </Button>
-                  <span className="px-6 py-3 font-semibold border-x border-border min-w-20 text-center">
-                    {quantity}
-                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+                    className="w-20 h-12 text-center font-semibold border-x border-border bg-transparent outline-none"
+                  />
                   <Button
                     variant="ghost"
                     onClick={incrementQuantity}
@@ -203,19 +234,19 @@ function RouteComponent() {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <AddToCartButton 
-                product={product} 
-                qty={quantity} 
+              <AddToCartButton
+                productId={product._id}
+                qty={quantity}
                 className="flex-1 h-12"
                 disabled={isOutOfStock}
               />
-
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="flex-1 h-12"
-                disabled={isOutOfStock}
+                disabled={isOutOfStock || isBuyingNow}
+                onClick={handleBuyNow}
               >
-                Buy Now
+                {isBuyingNow ? <Spinner className="w-4 h-4" /> : 'Buy Now'}
               </Button>
             </div>
 
@@ -227,20 +258,14 @@ function RouteComponent() {
                   <span className="text-muted-foreground">Category</span>
                   <span className="font-medium text-foreground">{product.category || 'Kitchen & Dining'}</span>
                 </div>
-                <div className="flex justify-between py-2">
-                  <span className="text-muted-foreground">Availability</span>
-                  <span className="font-medium text-primary">In Stock</span>
-                </div>
                 <div className="flex justify-between py-2 border-b border-border">
                   <span className="text-muted-foreground">SKU</span>
                   <span className="font-medium text-foreground">{product.sku}</span>
                 </div>
-
                 <div className="flex justify-between py-2 border-b border-border">
                   <span className="text-muted-foreground">Weight</span>
                   <span className="font-medium text-foreground">{product.weight} g</span>
                 </div>
-
                 <div className="flex justify-between py-2 border-b border-border">
                   <span className="text-muted-foreground">Dimensions</span>
                   <span className="font-medium text-foreground">
@@ -249,6 +274,7 @@ function RouteComponent() {
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>

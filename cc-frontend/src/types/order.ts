@@ -1,7 +1,12 @@
+import type { RazorpayOrder } from "./razorpay"
+
 export interface Address {
+    _id?: string
     name: string
     phone: string
-    street: string
+    address: string
+    locality: string
+    type: string
     city: string
     state: string
     pincode: string
@@ -24,6 +29,11 @@ export interface OrderItemDetails {
     _id: string
 }
 
+export interface CreateOrderResponse {
+    order: OrderItemDetails,
+    razorpayOrder: RazorpayOrder
+}
+
 export interface OrderDetails {
     _id: string
     user: {
@@ -33,10 +43,12 @@ export interface OrderDetails {
     }
     items: OrderItemDetails[]
     totalAmount: number
-    paymentMethod: 'COD' | 'CARD' | 'UPI'
+    subtotalAmount: number,
+    shippingAmount: number,
     paymentStatus: 'PENDING' | 'PAID' | 'FAILED'
     orderStatus: 'PLACED' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
     address: Address
+    razorpayOrderId?: string
     createdAt: string
     updatedAt: string
 }
@@ -50,7 +62,5 @@ export interface OrderList {
 
 export interface OrderFormData {
     items: OrderItem[]
-    totalAmount: number
-    paymentMethod: 'COD' | 'CARD' | 'UPI'
     address: Address
 }

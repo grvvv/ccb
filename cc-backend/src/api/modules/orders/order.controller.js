@@ -1,92 +1,43 @@
-const Order = require("./order.model");
-
 const Product = require("../product/product.model");
+const Order = require("../orders/order.model");
+const razorpay = require("../../../config/razorpay");
+const { buildOrderFromCart } = require("./order.service");
 
 exports.createOrder = async (req, res) => {
   try {
     const userId = req.user.id;
+    const { items, address } = req.body;
+    const { orderItems, subtotalAmount, shippingAmount, totalAmount } =
+      await buildOrderFromCart({
+        userId,
+        items,
+        address,
+      });
 
-    const { items, paymentMethod, address } = req.body;
-
-    if (!items || items.length === 0) {
-      return res.status(400).json({ message: "Cart is empty" });
-    }
-
-    if (!paymentMethod) {
-      return res.status(400).json({ message: "Payment method required" });
-    }
-
-    if (!address || !address.name || !address.phone || !address.street) {
-      return res.status(400).json({ message: "Invalid address" });
-    }
-
-    // Step 1: Fetch products from DB
-    const productIds = items.map(item => item.productId);
-
-    const products = await Product.find({
-      _id: { $in: productIds }
+    const razorpayOrder = await razorpay.orders.create({
+      amount: totalAmount * 100,
+      currency: "INR",
+      receipt: `receipt_${Date.now()}`,
     });
 
-    if (products.length !== items.length) {
-      return res.status(400).json({ message: "Some products not found" });
-    }
-
-    // Step 2: Build order items with snapshot
-    let totalAmount = 0;
-
-    const orderItems = items.map(item => {
-      const product = products.find(p =>
-        p._id.toString() === item.productId.toString()
-      );
-
-      if (!product) {
-        throw new Error("Product not found");
-      }
-
-      if (product.stock < item.quantity) {
-        throw new Error(`Insufficient stock for ${product.name}`);
-      }
-
-      const sellingPrice = product.sellingPrice || product.price;
-
-      totalAmount += sellingPrice * item.quantity;
-
-      return {
-        product: product._id,
-        name: product.name,
-        image: product.image,
-        price: product.price,
-        sellingPrice,
-        quantity: item.quantity
-      };
-    });
-
-    // Step 3: Create order
     const order = await Order.create({
       user: userId,
       items: orderItems,
+      subtotalAmount,
+      shippingAmount,
       totalAmount,
-      paymentMethod,
-      address
+      address,
+      razorpayOrderId: razorpayOrder.id,
     });
-
-    // Step 4: Reduce stock (basic version)
-    for (const item of orderItems) {
-      await Product.findByIdAndUpdate(
-        item.product,
-        { $inc: { stock: -item.quantity } }
-      );
-    }
 
     return res.status(201).json({
-      message: "Order placed successfully",
-      order
+        message: "Order created successfully",
+        order,
+        razorpayOrder,
     });
-
   } catch (error) {
-    console.error("Create order error:", error);
-    return res.status(500).json({
-      message: error.message || "Failed to create order"
+    return res.status(400).json({
+      message: error.message || "Failed to create order",
     });
   }
 };

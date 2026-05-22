@@ -17,6 +17,7 @@ export default function ProductCard({
   const [added, setAdded] = useState(false);
   const { mutate } = useAddToCart();
 
+  const isOutOfStock = product.stock <= 0;
   const hasDiscount = product.sellingPrice < product.price;
   const discountPercent = hasDiscount
     ? Math.round(((product.price - product.sellingPrice) / product.price) * 100)
@@ -24,8 +25,7 @@ export default function ProductCard({
 
   const handleAddToCart = () => {
     setAdded(true);
-    console.log(product)
-    mutate({product, qty: 1});
+    mutate({productId: product._id, quantity: 1});
     setTimeout(() => setAdded(false), 1500);
   };
 
@@ -40,6 +40,16 @@ export default function ProductCard({
 
       {/* Image area */}
       <div className="relative w-full min-h-48 lg:h-48 xl:h-52">
+        {isOutOfStock && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 backdrop-blur-[1px]">
+            <div className="rounded-full border border-white/20 bg-white/10 px-4 py-2">
+              <span className="text-sm font-semibold tracking-wide text-white">
+                Out of Stock
+              </span>
+            </div>
+          </div>
+        )}
+        
         <Link
           to={"/products/$productId"}
           params={{ productId: product._id }}
@@ -59,6 +69,7 @@ export default function ProductCard({
           <button
             aria-label="add to cart"
             onClick={handleAddToCart}
+            disabled={isOutOfStock}
             className={`w-11 h-11 flex items-center justify-center rounded-full cursor-pointer border-2 font-medium transition-colors duration-300 focus:outline-none
               ${added
                 ? "bg-green-500 border-green-500 text-white"

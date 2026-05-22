@@ -1,14 +1,14 @@
 import { BaseApiClient } from "@/lib/api";
 import type { UpdateUserCredentials } from "@/types/auth";
-import type { OrderDetails, OrderFormData, OrderList } from "@/types/order";
+import type { CreateOrderResponse, OrderDetails, OrderFormData, OrderList } from "@/types/order";
 
 class OrderService extends BaseApiClient {
   async getById(orderId: string): Promise<OrderDetails> {
     return this.get<OrderDetails>(`order/${orderId}/`);
   }
 
-  async create(data: OrderFormData): Promise<OrderDetails> {
-    return this.post<OrderDetails>(`order/add`, data);
+  async create(data: OrderFormData): Promise<CreateOrderResponse> {
+    return this.post<CreateOrderResponse>(`order/add`, data);
   }
 
   async update(orderId: string, data: UpdateUserCredentials): Promise<OrderDetails> {

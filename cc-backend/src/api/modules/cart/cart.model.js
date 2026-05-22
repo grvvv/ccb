@@ -12,7 +12,8 @@ const cartItemSchema = new mongoose.Schema({
   price: { type: Number, required: true },
 
   sellingPrice: { type: Number, required: true },
-  quantity: { type: Number, required: true, min: 1 }
+  quantity: { type: Number, required: true, min: 1 },
+  weight: { type: Number, required: true }
 });
 
 const cartSchema = new mongoose.Schema(
@@ -26,6 +27,9 @@ const cartSchema = new mongoose.Schema(
 
     items: [cartItemSchema],
     totalItems: { type: Number, default: 0 },
+    weight: { type: Number, default: 0 },
+    subtotalAmount: {type: Number, default: 0 },
+    shippingAmount: { type: Number, default: 0 },
     totalAmount: { type: Number, default: 0 }
   },
   { timestamps: true }

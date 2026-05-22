@@ -58,7 +58,6 @@ exports.createCarousel = async (req, res) => {
       result: newCarousel
     })
   } catch (error) {
-    console.log(error.message)
     return res.status(500).json({ message: "Internal Server Error" });
   }
 }
@@ -96,7 +95,6 @@ exports.updateCarousel = async (req, res) => {
       })
 
   } catch (error) {
-      console.log(error.message)
       return res.status(500).json({ message: "Internal Server Error" });
   }
 

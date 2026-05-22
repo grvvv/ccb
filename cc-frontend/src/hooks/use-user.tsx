@@ -10,6 +10,41 @@ export function useUserProfile(userId: string) {
   });
 }
 
+export function useMyProfile() {
+  return useQuery({
+    queryKey: ['users', 'profile'],
+    queryFn: () => userService.getMyProfile(),
+  });
+}
+
+export function useAddAddress() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: object) => userService.addAddress(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile'] });
+    },
+    onError: (error) => {
+      console.error('Failed to update address:', error);
+    },
+  });
+}
+
+export function useRemoveAddress() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (addressId: string) => userService.deleteAddress(addressId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile'] });
+    },
+    onError: (error) => {
+      console.error('Failed to update address:', error);
+    },
+  });
+}
+
 export function useUsers(params?: { page?: number; limit?: number; search?: string }) {
   return useQuery({
     queryKey: ['users', 'list', params],

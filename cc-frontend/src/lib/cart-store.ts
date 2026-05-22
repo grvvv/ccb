@@ -1,4 +1,3 @@
-// lib/cart-store.ts
 // Local cart state that syncs to localStorage.
 // TanStack Query is used to read/invalidate the cart like a server query.
 

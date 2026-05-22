@@ -72,7 +72,12 @@ const config = {
   mailer: {
     email: process.env.MAILER_MAIL,
     password: process.env.MAILER_PASSWORD
-  }
+  },
+
+  razorpay: {
+    keyId: process.env.RAZORPAY_KEY_ID,
+    keySecret: process.env.RAZORPAY_KEY_SECRET,
+  },
 
 };
 

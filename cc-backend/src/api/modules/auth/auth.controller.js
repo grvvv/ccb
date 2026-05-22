@@ -68,7 +68,6 @@ exports.signIn = async (req, res) => {
          }, ACCESS_JWT_SECRET, { expiresIn: config.jwt.access.expiry });
         res.status(200).json({ message: 'Login successful', authToken, user: userObj });
     } catch (error) {
-        console.log(error.message)
         return res.status(500).json({ message: 'Server error' });
     }
 };
@@ -105,7 +104,6 @@ exports.forgotPassword = async (req, res) => {
  
     res.status(200).json({ message: "Reset link sent to email." });
   } catch (err) {
-    console.log(err)
     res.status(500).json({ message: "Server error" });
   }
 };

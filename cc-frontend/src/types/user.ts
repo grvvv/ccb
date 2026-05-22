@@ -1,3 +1,5 @@
+import type { Address } from "./order";
+
 export interface UserProfile {
   id: string;
   company: string,
@@ -6,6 +8,7 @@ export interface UserProfile {
   role: 'admin' | 'manager' | 'user';
   created_at: string;
   updated_at: string;
+  addresses: Address[] | []
 }
 
 export interface UpdateUserData {

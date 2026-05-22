@@ -21,10 +21,8 @@ const CATEGORY_LINKS = [
 ]
 
 const ACCOUNT_LINKS = [
-  { label: 'Dashboard', href: '#' },
-  { label: 'My Orders', href: '#' },
-  { label: 'Recent Orders', href: '#' },
-  { label: 'Update Profile', href: '#' },
+  { label: 'My Orders', href: '/orders' },
+  { label: 'Update Profile', href: '/account' },
 ]
 
 const SOCIALS = [
@@ -54,7 +52,6 @@ function FooterLinkGroup({ title, links }: { title: string; links: { label: stri
   )
 }
 
-// ── Footer ────────────────────────────────────────────────────────────────────
 export function Footer() {
   return (
     <footer className="border-t border-border bg-background">

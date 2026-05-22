@@ -301,7 +301,6 @@ exports.allProducts = async (req, res) => {
     })
 
   } catch (error) {
-    console.log(error.message)
     return res.status(500).json({
       message: "Internal Server Error"
     })
@@ -328,7 +327,6 @@ exports.productById = async (req, res) => {
     return res.status(200).json(formatted);
 
   } catch (error) {
-    console.log(error.message);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };

@@ -24,6 +24,7 @@ import { useProducts, useDeleteProduct } from '@/hooks/use-product'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { MoreHorizontal, PackagePlus, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import type { ProductDetails } from '@/types/product'
 
 export const Route = createFileRoute('/admin/products/')({
   component: ProductsPage,
@@ -58,12 +59,6 @@ function getCategoryName(cat: Product['category']) {
   return cat?.name ?? '—'
 }
 
-function getThumbnail(images: Product['images']) {
-  if (!images?.length) return null
-  const first = images[0]
-  return typeof first === 'string' ? first : first.url
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function ProductsPage() {
@@ -72,7 +67,7 @@ function ProductsPage() {
   const products = productsResponse?.result ?? []
 
   const deleteProduct = useDeleteProduct()
-  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<ProductDetails | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDelete = async () => {
@@ -89,18 +84,17 @@ function ProductsPage() {
   }
 
   // ── Column definitions ──────────────────────────────────────────────────
-  const columns: ColumnDef<Product>[] = [
+  const columns: ColumnDef<ProductDetails>[] = [
     {
       key: 'name',
       header: 'Product',
       sortAccessor: (r) => r.name,
       cell: (row) => {
-        const thumb = getThumbnail(row.images)
         return (
           <div className="flex items-center gap-3 min-w-0">
             <div className="shrink-0 h-10 w-10 rounded-lg overflow-hidden bg-secondary border border-border">
-              {thumb ? (
-                <img src={thumb} alt={row.name} className="h-full w-full object-cover" />
+              {row.thumbnail ? (
+                <img src={row.thumbnail} alt={row.name} className="h-full w-full object-cover" />
               ) : (
                 <div className="h-full w-full flex items-center justify-center text-muted-foreground text-xs">
                   —

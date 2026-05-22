@@ -9,6 +9,7 @@ const categoryRoutes = require('../modules/category/category.route')
 const cartRoutes = require('../modules/cart/cart.route');
 const orderRoutes = require('../modules/orders/order.route')
 const carouselRoutes = require('../modules/carousel/carousel.route')
+const paymentRoutes = require('../modules/payment/payment.route')
 
 const { storageBarrier } = require("../middlewares/auth.middleware");
 const container = require('@containers/awilix');
@@ -23,7 +24,7 @@ router.use("/category", categoryRoutes)
 router.use("/cart", cartRoutes)
 router.use("/order", orderRoutes)
 router.use("/carousel", carouselRoutes)
-
+router.use("/payment", paymentRoutes)
 
 // General Routes
 router.get("/get-image", async (req, res) => {

@@ -2,29 +2,26 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
 import { createFileRoute } from '@tanstack/react-router'
 import {
   ArrowLeft,
-  CreditCard,
-  MapPin,
   Package,
   ShoppingBag,
-  Smartphone,
-  Wallet,
   Loader2,
   Minus,
   Plus,
   Trash2
 } from 'lucide-react'
-import { useCart, useUpdateCartQty, useRemoveFromCart, useClearCart } from '@/hooks/use-cart'
+import { useCart, useUpdateCartQuantity, useRemoveFromCart, useClearCart } from '@/hooks/use-cart'
 import { useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { orderService } from '@/services/order.service'
+import { paymentService, loadRazorpayScript } from '@/services/payment.service'
 import type { Address, OrderFormData } from '@/types/order'
+import '@/types/razorpay.d.ts'
+import { useMyProfile } from '@/hooks/use-user'
+import { AddressSelector } from '@/components/features/checkout/address-selector'
 
 export const Route = createFileRoute('/_public/(customer)/checkout')({
   component: CreateOrder,
@@ -32,75 +29,101 @@ export const Route = createFileRoute('/_public/(customer)/checkout')({
 
 function CreateOrder() {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
 
   const router = useRouter()
 
-  const { data: cartItems = [] } = useCart()
-  const updateQtyMutation = useUpdateCartQty()
+  const { data } = useCart()
+  let cartItems = data?.result?.items || []
+  const subtotal = data?.result?.subtotalAmount || 0
+  const shipping = data?.result?.shippingAmount || 0
+  const total = data?.result?.totalAmount || 0
+  const updateQtyMutation = useUpdateCartQuantity()
   const removeMutation = useRemoveFromCart()
   const clearCartMutation = useClearCart()
 
-  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'CARD' | 'UPI'>('COD')
-  const [address, setAddress] = useState<Address>({
-    name: '',
-    phone: '',
-    street: '',
-    city: '',
-    state: '',
-    pincode: '',
-  })
+  const { data: profile } = useMyProfile()
+  const addresses = profile?.addresses || []
+  const [selectedAddress, setSelectedAddress] = useState<Address | undefined>()
 
   const updateQuantity = (id: string, newQty: number) => {
     if (newQty < 1) return
-    updateQtyMutation.mutate({ id, quantity: newQty })
+    updateQtyMutation.mutate({ productId: id, quantity: newQty })
   }
-
   const removeItem = (id: string) => {
     removeMutation.mutate(id)
   }
 
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.sellingPrice * item.quantity,
-    0
-  )
   const savings = 0 // if not tracked in cartStore
-  const total = subtotal
-
-  const handleAddressChange = (field: keyof Address, value: string) => {
-    setAddress((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const isAddressValid = Object.values(address).every((val) => val.trim() !== '')
+  const isAddressValid = !!selectedAddress
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (!isAddressValid || cartItems.length === 0) return
-
-    setIsSubmitting(true)
+    if (!isAddressValid || cartItems.length === 0) {
+      return;
+    }
 
     try {
-      const orderData : OrderFormData = {
-        items: cartItems.map(item => ({
-          productId: item._id,
+      setIsSubmitting(true);
+
+      const orderData: OrderFormData = {
+        items: cartItems.map((item) => ({
+          productId: item.product,
           quantity: item.quantity,
         })),
-        totalAmount: total,
-        paymentMethod,
-        address,
+        address: selectedAddress!,
       }
 
-      console.log('Order Data:', orderData)
-      await orderService.create(orderData)
+      let { order, razorpayOrder } = await orderService.create(orderData)
+      const loaded = await loadRazorpayScript();
+      console.log({
+        loaded,
+        Razorpay: window.Razorpay,
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        razorpayOrder
+      });
 
-      clearCartMutation.mutate()
-      router.navigate({ to: '/orders' })
-    } catch (err) {
-      console.error(err)
+      if (!loaded) throw new Error("Failed to load Razorpay");
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        name: "Crafty Cakes",
+        description: `Order #${order._id}`,
+        order_id: razorpayOrder.id,
+        prefill: {
+          name: selectedAddress?.name,
+          contact: selectedAddress?.phone,
+        },
+        handler: async (paymentResponse: any) => {
+          const verification = await paymentService.verifyPayment({
+            razorpay_order_id: paymentResponse.razorpay_order_id,
+            razorpay_payment_id: paymentResponse.razorpay_payment_id,
+            razorpay_signature: paymentResponse.razorpay_signature,
+            appOrderId: order._id,
+          });
+
+          if (verification.success) {
+            clearCartMutation.mutate();
+            router.navigate({
+              to: "/orders",
+            });
+          }
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error: any) {
+      console.log(error)
+      setPaymentError(error?.response?.data?.message || "Something went wrong");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -140,7 +163,7 @@ function CreateOrder() {
                         {/* Image */}
                         <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-border bg-secondary shrink-0">
                           <img
-                            src={item.productImages?.[0]}
+                            src={item.image}
                             alt={item.name}
                             className="w-full h-full object-cover"
                           />
@@ -170,7 +193,7 @@ function CreateOrder() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 rounded-none"
-                                onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                                onClick={() => updateQuantity(item.product, item.quantity - 1)}
                                 disabled={item.quantity <= 1}
                               >
                                 <Minus className="h-3 w-3" />
@@ -183,7 +206,7 @@ function CreateOrder() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 rounded-none"
-                                onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                                onClick={() => updateQuantity(item.product, item.quantity + 1)}
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
@@ -194,12 +217,12 @@ function CreateOrder() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => removeItem(item._id)}
+                              onClick={() => removeItem(item.product)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                             <span className="text-xs text-muted-foreground ml-auto">
-                              Subtotal: ₹{(item.price * item.quantity).toFixed(2)}
+                              Subtotal: ₹{(subtotal).toFixed(2)}
                             </span>
                           </div>
                         </div>
@@ -217,168 +240,12 @@ function CreateOrder() {
                 </CardContent>
               </Card>
 
-              {/* Delivery Address */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base font-medium flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    Delivery Address
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-xs font-medium uppercase tracking-wide">
-                        Full Name <span className="text-primary">*</span>
-                      </Label>
-                      <Input
-                        id="name"
-                        placeholder="John Doe"
-                        value={address.name}
-                        onChange={(e) => handleAddressChange('name', e.target.value)}
-                        className="border-border"
-                        required
-                      />
-                    </div>
+              <AddressSelector
+                addresses={addresses}
+                value={selectedAddress}
+                onChange={setSelectedAddress}
+              />
 
-                    <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-xs font-medium uppercase tracking-wide">
-                        Phone Number <span className="text-primary">*</span>
-                      </Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="+1 234 567 8900"
-                        value={address.phone}
-                        onChange={(e) => handleAddressChange('phone', e.target.value)}
-                        className="border-border"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="street" className="text-xs font-medium uppercase tracking-wide">
-                      Street Address <span className="text-primary">*</span>
-                    </Label>
-                    <Input
-                      id="street"
-                      placeholder="123 Main Street, Apt 4B"
-                      value={address.street}
-                      onChange={(e) => handleAddressChange('street', e.target.value)}
-                      className="border-border"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid sm:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="city" className="text-xs font-medium uppercase tracking-wide">
-                        City <span className="text-primary">*</span>
-                      </Label>
-                      <Input
-                        id="city"
-                        placeholder="New York"
-                        value={address.city}
-                        onChange={(e) => handleAddressChange('city', e.target.value)}
-                        className="border-border"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="state" className="text-xs font-medium uppercase tracking-wide">
-                        State <span className="text-primary">*</span>
-                      </Label>
-                      <Input
-                        id="state"
-                        placeholder="NY"
-                        value={address.state}
-                        onChange={(e) => handleAddressChange('state', e.target.value)}
-                        className="border-border"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="pincode" className="text-xs font-medium uppercase tracking-wide">
-                        Pincode <span className="text-primary">*</span>
-                      </Label>
-                      <Input
-                        id="pincode"
-                        placeholder="10001"
-                        value={address.pincode}
-                        onChange={(e) => handleAddressChange('pincode', e.target.value)}
-                        className="border-border"
-                        required
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Payment Method */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base font-medium flex items-center gap-2">
-                    <Wallet className="h-4 w-4 text-primary" />
-                    Payment Method
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <RadioGroup value={paymentMethod} onValueChange={(val) => setPaymentMethod(val as any)}>
-                    <div className="space-y-3">
-                      {/* COD */}
-                      <label
-                        className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                          paymentMethod === 'COD'
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <RadioGroupItem value="COD" id="cod" />
-                        <Package className="h-5 w-5 text-muted-foreground" />
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">Cash on Delivery</p>
-                          <p className="text-xs text-muted-foreground">Pay when you receive</p>
-                        </div>
-                      </label>
-
-                      {/* CARD */}
-                      <label
-                        className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                          paymentMethod === 'CARD'
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <RadioGroupItem value="CARD" id="card" />
-                        <CreditCard className="h-5 w-5 text-muted-foreground" />
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">Credit / Debit Card</p>
-                          <p className="text-xs text-muted-foreground">Visa, Mastercard, Amex</p>
-                        </div>
-                      </label>
-
-                      {/* UPI */}
-                      <label
-                        className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                          paymentMethod === 'UPI'
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <RadioGroupItem value="UPI" id="upi" />
-                        <Smartphone className="h-5 w-5 text-muted-foreground" />
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">UPI Payment</p>
-                          <p className="text-xs text-muted-foreground">GPay, PhonePe, Paytm</p>
-                        </div>
-                      </label>
-                    </div>
-                  </RadioGroup>
-                </CardContent>
-              </Card>
             </div>
 
             {/* Right Column - Order Summary */}
@@ -402,7 +269,7 @@ function CreateOrder() {
                     )}
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Shipping</span>
-                      <span className="font-medium text-green-600">FREE</span>
+                      <span className="font-medium text-green-600">₹{shipping.toFixed(2)}</span>
                     </div>
                   </div>
 
@@ -414,21 +281,26 @@ function CreateOrder() {
                     <span className="font-bold text-primary text-lg">₹{total.toFixed(2)}</span>
                   </div>
 
+                  {/* Payment Error */}
+                  {paymentError && (
+                    <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                      {paymentError}
+                    </div>
+                  )}
+
                   {/* Place Order Button */}
                   <Button
                     type="submit"
                     className="w-full"
                     size="lg"
-                    disabled={!isAddressValid || cartItems.length === 0 || isSubmitting}
+                    disabled={!selectedAddress || cartItems.length === 0 || isSubmitting}
                   >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Processing...
                       </>
-                    ) : (
-                      'Place Order'
-                    )}
+                    ) : ('Pay Now')}
                   </Button>
 
                   <p className="text-[10px] text-muted-foreground text-center leading-relaxed">

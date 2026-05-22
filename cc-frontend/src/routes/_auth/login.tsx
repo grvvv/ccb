@@ -34,17 +34,17 @@ function RouteComponent() {
 
 
   useEffect(() => {
-    if (loginError) {
-      if (loginError instanceof AxiosError && loginError.response) {
-        toast.error('Login Failed', {
-          description: loginError.response.data.detail,
-        });
-      } else {
-        toast.error('Login Failed', {
-          description: 'An unexpected error occurred',
-        });
-      }
+    if (!loginError) return;
+    if (loginError instanceof AxiosError && loginError.response) {
+      toast.error('Login Failed', {
+        description: loginError.response.data.detail,
+      });
+      return;
     }
+
+    toast.error('Login Failed', {
+      description: 'An unexpected error occurred',
+    });
   }, [loginError]);
 
   return (
@@ -60,7 +60,7 @@ function RouteComponent() {
             <p className="text-primary-foreground/80 text-sm">your one stop place</p>
           </div>
 
-        
+
           <form
             className="px-8 py-8 space-y-6"
             onSubmit={(e) => {
@@ -91,11 +91,10 @@ function RouteComponent() {
                       value={state.value}
                       onChange={(e) => handleChange(e.target.value)}
                       onBlur={handleBlur}
-                      className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg transition-all duration-200 ${
-                        state.meta.errors.length > 0
+                      className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg transition-all duration-200 ${state.meta.errors.length > 0
                           ? 'border-destructive focus:border-destructive focus:ring-destructive/20'
                           : 'border-border focus:border-primary focus:ring-primary/20'
-                      }`}
+                        }`}
                       placeholder="vendor@example.com"
                     />
                   </div>
@@ -128,11 +127,10 @@ function RouteComponent() {
                       value={state.value}
                       onChange={(e) => handleChange(e.target.value)}
                       onBlur={handleBlur}
-                      className={`w-full pl-10 pr-12 py-3 border-2 rounded-lg transition-all duration-200 ${
-                        state.meta.errors.length > 0
+                      className={`w-full pl-10 pr-12 py-3 border-2 rounded-lg transition-all duration-200 ${state.meta.errors.length > 0
                           ? 'border-destructive focus:border-destructive focus:ring-destructive/20'
                           : 'border-border focus:border-primary focus:ring-primary/20'
-                      }`}
+                        }`}
                       placeholder="Enter your password"
                     />
                     <button
@@ -155,11 +153,11 @@ function RouteComponent() {
             />
 
             {/* Forgot Password */}
-            <div className="flex items-center justify-end">
+            {/* <div className="flex items-center justify-end">
               <a href="#" className="text-sm text-primary hover:underline">
                 Forgot password?
               </a>
-            </div>
+            </div> */}
 
             {/* Submit Button */}
             <Button

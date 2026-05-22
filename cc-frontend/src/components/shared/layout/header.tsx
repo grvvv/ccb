@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
-import { Search, Menu, X, ChevronDown, LogOut, LogIn } from "lucide-react";
+import { LogOut, LogIn, User2Icon, UserRoundIcon, UserCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetClose,
-} from "@/components/ui/sheet";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -23,6 +25,7 @@ import { CartSheet } from "../../features/cart/cart-sheet";
 import { ModeToggle } from "@/components/molecules/mode-toogle";
 import AnnouncementBar from "@/components/features/discount/announcement-bar";
 import { useCategories } from "@/hooks/use-category";
+import HamburgerMenu from "./mobile-hamburger";
 
 export default function Header({ isLoggedIn }: { isLoggedIn: boolean, isAdmin: boolean }) {
   const [scrolled, setScrolled] = useState(false);
@@ -75,70 +78,7 @@ export default function Header({ isLoggedIn }: { isLoggedIn: boolean, isAdmin: b
           <div className="flex items-center justify-between h-16 gap-4">
 
             {/* Mobile: Hamburger */}
-            <div className="flex items-center lg:hidden">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="shrink-0">
-                    <Menu className="h-5 w-5" />
-                    <span className="sr-only">Open menu</span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-72 p-0" showCloseButton={false}>
-                  <div className="flex flex-col h-full">
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                      <span className="text-lg font-bold tracking-tight">
-                        <span className="text-primary">CC</span>bakebox
-                      </span>
-                      <SheetClose asChild>
-                        <Button variant="ghost" size="icon">
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </SheetClose>
-                    </div>
-                    <nav className="flex-1 overflow-y-auto py-4">
-                      {NAV_LINKS.map((link) => (
-                        <div key={link.label}>
-                          <Link
-                            to={link.href}
-                            className="flex items-center justify-between px-6 py-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-                          >
-                            {link.label}
-                            {link.children && <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                          </Link>
-                          {link.children && (
-                            <div className="bg-muted/40">
-                              {link.children.map((child) => (
-                                <a
-                                  key={child.label}
-                                  href={child.href}
-                                  className="flex flex-col px-10 py-2 hover:bg-accent transition-colors"
-                                >
-                                  <span className="text-sm font-medium">{child.label}</span>
-                                  <span className="text-xs text-muted-foreground">{child.description}</span>
-                                </a>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </nav>
-                    <div className="border-t border-border px-6 py-4 space-y-2">
-                      {
-                        isLoggedIn ? (
-                          <Button variant="outline" size="sm" className="w-full" onClick={() => logout() }>
-                            Logout
-                          </Button>
-                        ) : (
-                          <Button variant="outline" size="sm" className="w-full" onClick={() => navigate({ to: '/login' })}>
-                            Login / Sign Up
-                          </Button>
-                        )
-                      }
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
+            <HamburgerMenu links={NAV_LINKS} isLoggedIn={isLoggedIn} />
 
             {/* Logo */}
             <Link to="/" className="flex items-center shrink-0">
@@ -231,7 +171,7 @@ export default function Header({ isLoggedIn }: { isLoggedIn: boolean, isAdmin: b
               {/* Cart */}
               {!searchOpen && <CartSheet />}
 
-              {!searchOpen && 
+              {/* {!searchOpen && 
                isLoggedIn ? (
                 <Button variant="ghost" size="icon" className="hidden sm:flex" onClick={() => logout() }>
                   <LogOut className="h-5 w-5" />
@@ -242,8 +182,26 @@ export default function Header({ isLoggedIn }: { isLoggedIn: boolean, isAdmin: b
                   <LogIn className="h-5 w-5 mr-1" />
                   Log In
                 </Button>
-              )}
+              )} */}
 
+              {!searchOpen && 
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon"><UserCircle2 /></Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => navigate({to : "/account"})}>Profile</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate({to : "/orders"})}>Orders</DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => logout()}
+                        className="text-primary">Logout</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              }
               
             </div>
           </div>

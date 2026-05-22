@@ -14,7 +14,6 @@ exports.getCategoryById = async (req, res) => {
         }
         return res.status(200).json(category)
     } catch (error) {
-        console.log(error.message)
         return res.status(500).json({ message: 'Internal Server Error' });
     }
 
@@ -46,7 +45,6 @@ exports.createCategory = async (req, res) => {
             result: category
         });
     } catch (error) {
-        console.log(error.message)
         return res.status(500).json({error: "Internal Server Error"})
     }
   

@@ -1,97 +1,82 @@
-// hooks/use-cart.ts
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { cartStore, type CartItem } from "@/lib/cart-store";
-import { toast } from "sonner";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-export const CART_QUERY_KEY = ["cart"];
-
-// ─── Read ────────────────────────────────────────────────────────────────────
+import { cartService } from '@/services/cart.service';
 
 export function useCart() {
   return useQuery({
-    queryKey: CART_QUERY_KEY,
-    queryFn: () => cartStore.get(),
-    // Cart lives in localStorage — always fresh, no stale time needed.
-    staleTime: Infinity,
+    queryKey: ['cart'],
+    queryFn: () => cartService.getCart(),
   });
 }
 
-export function useCartCount() {
-  const { data: items = [] } = useCart();
-  return items.reduce((sum, item) => sum + item.quantity, 0);
-}
-
-export function useCartTotal() {
-  const { data: items = [] } = useCart();
-  return items.reduce((sum, item) => sum + item.sellingPrice * item.quantity, 0);
-}
-
-// ─── Mutations ───────────────────────────────────────────────────────────────
-
 export function useAddToCart() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      product,
-      qty = 1,
-    }: {
-      product: Omit<CartItem, "quantity">;
-      qty?: number;
-    }) => {
-      cartStore.add(product, qty);
-      return cartStore.get();
+    mutationFn: ({ productId, quantity }: {
+      productId: string;
+      quantity: number;
+    }) => cartService.addToCart(productId, quantity),
+
+    onSuccess: (data) => {
+      queryClient.setQueryData(['cart'], data.result);
+      queryClient.invalidateQueries({queryKey: ['cart']});
     },
-    onSuccess: (items) => {
-      qc.setQueryData(CART_QUERY_KEY, items);
-      toast.success("Added to cart");
+
+    onError: (error) => {
+      console.error('Failed to add to cart:', error);
     },
-    onError: () => {
-      toast.error("Failed to add item");
+  });
+}
+
+export function useUpdateCartQuantity() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({productId,quantity}: {
+      productId: string;
+      quantity: number;
+    }) => cartService.updateQuantity(productId, quantity),
+
+    onSuccess: (data) => {
+      queryClient.setQueryData(['cart'], data.result);
+      queryClient.invalidateQueries({ queryKey: ['cart'],});
+    },
+
+    onError: (error) => {
+      console.error('Failed to update cart quantity:', error);
     },
   });
 }
 
 export function useRemoveFromCart() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      cartStore.remove(id);
-      return cartStore.get();
+    mutationFn: (productId: string) => cartService.removeFromCart(productId),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['cart'],data.result);
+      queryClient.invalidateQueries({queryKey: ['cart']});
     },
-    onSuccess: (items) => {
-      qc.setQueryData(CART_QUERY_KEY, items);
-      toast.success("Item removed");
-    },
-  });
-}
 
-export function useUpdateCartQty() {
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, quantity }: { id: string; quantity: number }) => {
-      cartStore.updateQty(id, quantity);
-      return cartStore.get();
-    },
-    onSuccess: (items) => {
-      qc.setQueryData(CART_QUERY_KEY, items);
+    onError: (error) => {
+      console.error('Failed to remove cart item:', error);
     },
   });
 }
 
 export function useClearCart() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
-      cartStore.clear();
-      return [] as CartItem[];
+    mutationFn: () => cartService.clearCart(),
+    onSuccess: () => {
+      queryClient.setQueryData(['cart'],null);
+      queryClient.invalidateQueries({queryKey: ['cart'],});
     },
-    onSuccess: (items) => {
-      qc.setQueryData(CART_QUERY_KEY, items);
-      toast.success("Cart cleared");
+
+    onError: (error) => {
+      console.error('Failed to clear cart:', error);
     },
   });
 }
