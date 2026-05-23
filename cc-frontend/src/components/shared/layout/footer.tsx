@@ -1,11 +1,11 @@
+import { useCategories } from '@/hooks/use-category'
+import type { CategoryDetails } from '@/types/category'
 import { Link } from '@tanstack/react-router'
 import {
   Phone,
   Mail,
   MapPin,
-  Instagram,
-  FacebookIcon,
-  TwitterIcon,
+  Instagram
 } from 'lucide-react'
 
 // ── Data ─────────────────────────────────────────────────────────────────────
@@ -14,21 +14,13 @@ const COMPANY_LINKS = [
   { label: 'Contact Us', href: '/contact' },
 ]
 
-const CATEGORY_LINKS = [
-  { label: 'Soft Drink', href: '/search?category=drinks' },
-  { label: 'Milk & Dairy', href: '/search?category=milk-dairy' },
-  { label: 'Beauty & Health', href: '/search?category=beauty-health' },
-]
-
 const ACCOUNT_LINKS = [
   { label: 'My Orders', href: '/orders' },
   { label: 'Update Profile', href: '/account' },
 ]
 
 const SOCIALS = [
-  { label: 'Facebook', href: 'https://www.facebook.com/', Icon: FacebookIcon },
-  { label: 'Twitter / X', href: 'https://twitter.com/', Icon: TwitterIcon },
-  { label: 'Instagram', href: 'https://www.instagram.com/', Icon: Instagram },
+  { label: 'Instagram', href: 'https://www.instagram.com/cc_bakebox_', Icon: Instagram },
 ]
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -41,7 +33,7 @@ function FooterLinkGroup({ title, links }: { title: string; links: { label: stri
           <li key={label}>
             <Link
               to={href}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors duration-150"
+              className="text-sm text-muted-foreground capitalize hover:text-primary transition-colors duration-150"
             >
               {label}
             </Link>
@@ -53,6 +45,16 @@ function FooterLinkGroup({ title, links }: { title: string; links: { label: stri
 }
 
 export function Footer() {
+  const { data } = useCategories()
+  const categories: CategoryDetails[] = data?.result || [];
+
+  const CATEGORY_LINKS = categories
+    .slice(0, 5)
+    .map((category) => ({
+      label: category.name,
+      href: `/category/${category.slug}`,
+  }));
+
   return (
     <footer className="border-t border-border bg-background">
       {/* Main grid */}
@@ -69,11 +71,11 @@ export function Footer() {
           <address className="not-italic text-sm text-muted-foreground leading-relaxed space-y-1">
             <p className="flex items-start gap-2">
               <MapPin size={14} className="mt-0.5 shrink-0 text-primary" />
-              XYZ Road,<br />Mumbai, IND
+              Shop No. 6, Mannu Villa<br />Nr. Eastern Mall, Pushpa Park<br/>Daftary Road, Malad (E)<br/> Mumbai, MH - 400097
             </p>
             <p className="flex items-center gap-2">
               <Phone size={14} className="shrink-0 text-primary" />
-              833.XXX.1666
+              937-215-7014
             </p>
             <p className="flex items-center gap-2">
               <Mail size={14} className="shrink-0 text-primary" />
@@ -109,13 +111,13 @@ export function Footer() {
           {/* Call CTA */}
           <div className="text-center">
             <p className="text-xs text-muted-foreground">Call Us Anytime</p>
-            <p className="text-lg font-bold text-primary leading-tight">+65 9988 7766</p>
+            <p className="text-lg font-bold text-primary leading-tight">+91 702-190-7091</p>
           </div>
 
           {/* Copyright */}
-          <p className="text-xs text-muted-foreground">
+          <a className="text-xs text-muted-foreground" href='http://tridenzic.com'>
             © {new Date().getFullYear()} Tridenzic. All rights reserved.
-          </p>
+          </a>
         </div>
       </div>
     </footer>

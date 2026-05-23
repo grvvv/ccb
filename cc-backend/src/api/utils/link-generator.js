@@ -1,6 +1,6 @@
 let config = require('../../config/index.js')
 
-const BASE_URL = `http://${config.ip}:${config.port}`
+const BASE_URL = config.domain
 
 exports.createImageLink = (path) => {
     let link = BASE_URL + "/images/" + path 

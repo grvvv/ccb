@@ -33,22 +33,6 @@ export default function NotFound() {
         {/* Divider */}
         <div className="w-16 h-px bg-border mb-8" />
 
-        {/* Suggestions */}
-        <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-4">
-          You might be looking for
-        </p>
-        <div className="flex flex-wrap gap-2 justify-center mb-10">
-          {["New Arrivals", "Best Sellers", "Sale", "Collections"].map((tag) => (
-            <a
-              key={tag}
-              href="#"
-              className="px-4 py-1.5 rounded-full border border-border text-sm text-foreground hover:bg-accent hover:border-accent transition-colors"
-            >
-              {tag}
-            </a>
-          ))}
-        </div>
-
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs sm:max-w-sm">
           <Button asChild className="flex-1 gap-2">
@@ -58,7 +42,7 @@ export default function NotFound() {
             </a>
           </Button>
           <Button asChild variant="outline" className="flex-1 gap-2">
-            <a href="/shop">
+            <a href="/product">
               <Search className="h-4 w-4" />
               Browse Shop
             </a>

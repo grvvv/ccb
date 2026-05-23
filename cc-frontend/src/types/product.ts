@@ -11,7 +11,7 @@ export interface ProductDetails {
   b2bPricingTiers: B2BTier[];
   sku: string;
   stock: number;
-  weight: string;
+  weight: number;
   dimensions: Dimensions
   isCODAvailable: boolean;
   created_at: string;

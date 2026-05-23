@@ -1,10 +1,11 @@
 import { useProductDetails } from '@/hooks/use-product';
-import { createFileRoute, useNavigate, useParams } from '@tanstack/react-router';
+import { createFileRoute, useParams } from '@tanstack/react-router';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { useState, useMemo } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import { AddToCartButton } from '@/components/features/cart/add-to-cart-button';
+import { BuyNowButton } from '@/components/features/checkout/buynow-button';
 
 export const Route = createFileRoute('/_public/products/$productId')({
   component: RouteComponent,
@@ -15,8 +16,6 @@ function RouteComponent() {
   const { data: product, isLoading, error } = useProductDetails(productId);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isBuyingNow, setIsBuyingNow] = useState(false);
-  const navigate = useNavigate();
 
   const incrementQuantity = () => setQuantity(prev => prev + 1);
   const decrementQuantity = () => setQuantity(prev => prev > 1 ? prev - 1 : 1);
@@ -33,18 +32,6 @@ function RouteComponent() {
 
   // Effective price: tier price overrides selling price when a tier is active
   const effectivePrice = activeTier?.price ?? product?.sellingPrice;
-
-  const handleBuyNow = () => {
-    if (!product) return;
-    navigate({
-      to: '/checkout',
-      search: {
-        productId: product._id,
-        quantity,
-        price: effectivePrice,
-      },
-    });
-  };
 
   if (error) {
     return (
@@ -240,14 +227,12 @@ function RouteComponent() {
                 className="flex-1 h-12"
                 disabled={isOutOfStock}
               />
-              <Button
-                variant="outline"
+              <BuyNowButton
+                product={product}
+                qty={quantity}
                 className="flex-1 h-12"
-                disabled={isOutOfStock || isBuyingNow}
-                onClick={handleBuyNow}
-              >
-                {isBuyingNow ? <Spinner className="w-4 h-4" /> : 'Buy Now'}
-              </Button>
+                disabled={isOutOfStock}
+              />
             </div>
 
             {/* Product Details */}

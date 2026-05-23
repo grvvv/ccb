@@ -100,3 +100,33 @@ exports.toggleCategoryStatus = async (req, res) => {
     }
   
 };
+
+exports.deleteCategory = async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+
+    if (!category) {
+      return res.status(404).json({
+        message: "Category not found"
+      });
+    }
+
+    // optional: delete image from storage
+    if (category.image) {
+      await storage.deleteFile(category.image);
+    }
+
+    await category.deleteOne();
+
+    return res.status(200).json({
+      message: "Category deleted successfully"
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};

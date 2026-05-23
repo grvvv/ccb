@@ -43,13 +43,6 @@ const sections = [
   },
 ]
 
-const stats = [
-  { label: 'Products', icon: 'ti-package' },
-  { label: 'Categories', icon: 'ti-tag' },
-  { label: 'Orders', icon: 'ti-shopping-cart' },
-  { label: 'Carousels', icon: 'ti-slideshow' },
-]
-
 function RouteComponent() {
   return (
     <div className="p-6 max-w-5xl">

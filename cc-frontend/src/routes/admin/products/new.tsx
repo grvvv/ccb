@@ -407,7 +407,7 @@ function AddProduct() {
 
                 <div className="space-y-2">
                   <Label htmlFor="weight" className="text-xs font-medium uppercase tracking-wide">
-                    Weight (kg) <span className="text-primary">*</span>
+                    Weight (grams) <span className="text-primary">*</span>
                   </Label>
                   <Input
                     id="weight"

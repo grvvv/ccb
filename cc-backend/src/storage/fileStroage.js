@@ -6,9 +6,6 @@ const Storage = require('./storage');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 
-const IP_ADDRESS = config.ip;
-const PORT = config.port;
-
 class ImageStorage extends Storage {
   constructor() {
     super();

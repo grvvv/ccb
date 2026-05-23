@@ -19,6 +19,7 @@ function getWirelessIPv4() {
 
 const config = {
   env: process.env.NODE_ENV || 'development',
+  domain: process.env.DOMAIN,
   port: parseInt(process.env.PORT || '5000', 10),
   ip: getWirelessIPv4(),
   bcrypt: {

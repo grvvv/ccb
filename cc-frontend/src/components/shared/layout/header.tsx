@@ -36,11 +36,11 @@ export default function Header({ isLoggedIn }: { isLoggedIn: boolean, isAdmin: b
   const { data } = useCategories({ page: 1, limit: 6 })
 
   let topCategories = data?.result.map((cat) => {
-      return {
-          label: cat.name,
-          href: `/category/${cat.slug}`,
-          description: `Search for ${cat.slug}`
-      }
+    return {
+      label: cat.name,
+      href: `/category/${cat.slug}`,
+      description: `Search for ${cat.slug}`
+    }
   })
 
   const NAV_LINKS = [
@@ -166,25 +166,13 @@ export default function Header({ isLoggedIn }: { isLoggedIn: boolean, isAdmin: b
                   </Button>
                 )}
               </div> */}
-              
+
               {!searchOpen && <ModeToggle />}
               {/* Cart */}
-              {!searchOpen && <CartSheet />}
+              {!searchOpen && isLoggedIn && <CartSheet />}
 
-              {/* {!searchOpen && 
-               isLoggedIn ? (
-                <Button variant="ghost" size="icon" className="hidden sm:flex" onClick={() => logout() }>
-                  <LogOut className="h-5 w-5" />
-                  <span className="sr-only">Logout</span>
-                </Button>
-               ) : (
-                <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => navigate({ to: '/login' })}>
-                  <LogIn className="h-5 w-5 mr-1" />
-                  Log In
-                </Button>
-              )} */}
-
-              {!searchOpen && 
+              {!searchOpen &&
+                isLoggedIn ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon"><UserCircle2 /></Button>
@@ -192,17 +180,22 @@ export default function Header({ isLoggedIn }: { isLoggedIn: boolean, isAdmin: b
                   <DropdownMenuContent>
                     <DropdownMenuGroup>
                       <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => navigate({to : "/account"})}>Profile</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate({to : "/orders"})}>Orders</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate({ to: "/account" })}>Profile</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate({ to: "/orders" })}>Orders</DropdownMenuItem>
                     </DropdownMenuGroup>
                     <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => logout()}
-                        className="text-primary">Logout</DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => logout()}
+                      className="text-primary">Logout</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+              ) : (
+                <Button variant="outline" size="sm" onClick={() => navigate({ to: '/login' })}>
+                  <LogIn />Login
+                </Button>
+              )
               }
-              
+
             </div>
           </div>
         </div>

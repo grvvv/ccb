@@ -19,10 +19,6 @@ const productSchema = mongoose.Schema({
     sellingPrice    : {                                    // B2C selling price
         type     : Number,
         required : true,
-        validate : {
-            validator : function(value) { return this.price >= value },
-            message   : "Selling price must be less than or equal to MRP"
-        }
     },
     b2bPricingTiers : {                                   // sorted by minQty asc
         type    : [b2bPricingTierSchema],

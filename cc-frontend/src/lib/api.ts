@@ -1,7 +1,7 @@
 import axios, { type AxiosInstance, type AxiosResponse, AxiosError } from 'axios'
 import { authService } from './auth'
 
-export const BACKEND_URL = 'http://localhost:8800'
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8800'
 
 export class BaseApiClient {
   protected axiosInstance: AxiosInstance
