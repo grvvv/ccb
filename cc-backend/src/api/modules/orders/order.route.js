@@ -8,7 +8,9 @@ const {
     updateOrder,
     updateOrderStatus,
     updatePaymentStatus,
-    deleteOrder
+    cancelUnpaidOrder,
+    deleteOrder,
+    getMyOrders
 } = require("./order.controller");
 
 const { bsonChecker } = require("../../middlewares/policy.middleware");
@@ -16,15 +18,18 @@ const authorize = require('../../middlewares/role.middleware');
 const { access } = require('../../middlewares/auth.middleware');
 
 router.use(access)
-router.get("/", getAllOrders);
-router.get("/:id", bsonChecker, getOrderById);
+router.get("/me", getMyOrders);
 router.post("/add", createOrder);
 
 // Create Order
-router.use(authorize(['admin']))
-router.patch("/update/:id", bsonChecker, updateOrder);
-router.patch("/update-status/:id", bsonChecker, updateOrderStatus);
-router.patch("/update-payment/:id", bsonChecker, updatePaymentStatus);
-router.delete("/delete/:id", bsonChecker, deleteOrder);
+router.get("/", authorize(['admin']), getAllOrders);
+router.patch("/update/:id", authorize(['admin']), bsonChecker, updateOrder);
+router.patch("/update-status/:id", authorize(['admin']), bsonChecker, updateOrderStatus);
+router.patch("/update-payment/:id", authorize(['admin']), bsonChecker, updatePaymentStatus);
+router.delete("/delete/:id", authorize(['admin']), bsonChecker, deleteOrder);
+router.delete("/unpaid/:id", bsonChecker, cancelUnpaidOrder);
+
+
+router.get("/:id", bsonChecker, getOrderById);
 
 module.exports = router;

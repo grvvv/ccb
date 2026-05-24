@@ -19,10 +19,6 @@ const ACCOUNT_LINKS = [
   { label: 'Update Profile', href: '/account' },
 ]
 
-const SOCIALS = [
-  { label: 'Instagram', href: 'https://www.instagram.com/cc_bakebox_', Icon: Instagram },
-]
-
 // ── Sub-components ────────────────────────────────────────────────────────────
 function FooterLinkGroup({ title, links }: { title: string; links: { label: string; href: string }[] }) {
   return (
@@ -79,7 +75,7 @@ export function Footer() {
             </p>
             <p className="flex items-center gap-2">
               <Mail size={14} className="shrink-0 text-primary" />
-              ccbakebox@test.com
+              craftycake@gmail.com
             </p>
           </address>
         </div>
@@ -94,18 +90,16 @@ export function Footer() {
         <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Socials */}
           <div className="flex items-center gap-2">
-            {SOCIALS.map(({ label, href, Icon }) => (
               <a
-                key={label}
-                href={href}
+                key="Instagram"
+                href="https://www.instagram.com/cc_bakebox_"
                 target="_blank"
                 rel="noreferrer"
-                aria-label={label}
+                aria-label="instagram-link"
                 className="opacity-90 hover:opacity-100 hover:scale-110 transition-all duration-150"
               >
-                <Icon />
+                <Instagram /> cc_bakebox_
               </a>
-            ))}
           </div>
 
           {/* Call CTA */}

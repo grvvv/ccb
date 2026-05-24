@@ -19,7 +19,7 @@ export function useUpdateOrder() {
     mutationFn: ({ orderId, orderData }: { orderId: string; orderData: any }) =>
     orderService.update(orderId, orderData),
     onSuccess: (data) => {
-      queryClient.setQueryData(['orders', data._id], data);
+      queryClient.setQueryData(['orders', data.result._id], data);
       queryClient.invalidateQueries({ queryKey: ['orders', 'list'] });
     },
   });
@@ -48,6 +48,7 @@ export function useMakeOrder() {
     onSuccess: () => {
       // Invalidate and refetch users list
       queryClient.invalidateQueries({ queryKey: ['orders', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['orders', 'list', 'me'] });
       queryClient.invalidateQueries({ queryKey: ['orders', 'names'] });
     },
     onError: (error) => {
@@ -55,6 +56,14 @@ export function useMakeOrder() {
     },
   });
 }
+
+export function useMyOrders(params?: { page?: number; limit?: number; search?: string }) {
+  return useQuery({
+    queryKey: ['orders', 'list', "me"],
+    queryFn: () => orderService.myOrders(params),
+  });
+}
+
 
 export function useOrders(params?: { page?: number; limit?: number; search?: string }) {
   return useQuery({

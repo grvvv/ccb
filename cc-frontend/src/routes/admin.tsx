@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useRouterState } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet, redirect, useRouterState } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -14,8 +14,20 @@ import {
 import { cn } from '@/lib/utils'
 import { ModeToggle } from '@/components/molecules/mode-toogle'
 import { useAuth } from '@/hooks/use-auth'
+import { authService } from '@/lib/auth'
 
 export const Route = createFileRoute('/admin')({
+  beforeLoad: () => {
+    const isLoggedIn = authService.isAuth()
+    const role = authService.getRole()
+
+    if (!isLoggedIn || role !== 'admin') {
+      throw redirect({
+        to: '/',
+      })
+    }
+  },
+
   component: AdminLayout,
 })
 

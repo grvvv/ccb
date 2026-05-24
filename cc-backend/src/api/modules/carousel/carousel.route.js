@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { createCarousel, updateCarousel, getCarousel, getCarouselById } = require("./carousel.contoller")
+const { createCarousel, updateCarousel, getCarousel, getCarouselById, deleteCarousel } = require("./carousel.contoller")
 const { bsonChecker } = require("../../middlewares/policy.middleware");
 const authorize = require('../../middlewares/role.middleware');
 const { access } = require('../../middlewares/auth.middleware');
@@ -19,5 +19,6 @@ router.post("/add", upload.single("image"), createCarousel)
 
 // Update image
 router.put("/update/:id", bsonChecker, upload.single("image"), updateCarousel)
+router.delete("/delete/:id", deleteCarousel);
 
 module.exports = router;

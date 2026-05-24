@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LogOut, LogIn, User2Icon, UserRoundIcon, UserCircle2 } from "lucide-react";
+import { LogIn, UserCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,9 +27,8 @@ import AnnouncementBar from "@/components/features/discount/announcement-bar";
 import { useCategories } from "@/hooks/use-category";
 import HamburgerMenu from "./mobile-hamburger";
 
-export default function Header({ isLoggedIn }: { isLoggedIn: boolean, isAdmin: boolean }) {
+export default function Header({ isLoggedIn, isAdmin = false }: { isLoggedIn: boolean, isAdmin: boolean }) {
   const [scrolled, setScrolled] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const { logout } = useAuth()
   const navigate = useNavigate()
 
@@ -136,42 +135,10 @@ export default function Header({ isLoggedIn }: { isLoggedIn: boolean, isAdmin: b
 
             {/* Right Actions */}
             <div className="flex items-center gap-1 shrink-0">
-              {/* Search */}
-              {/* <div className="relative flex items-center">
-                {searchOpen ? (
-                  <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-200">
-                    <Input
-                      autoFocus
-                      placeholder="Search products..."
-                      className="h-8 w-40 sm:w-56 text-sm"
-                      onBlur={() => setSearchOpen(false)}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setSearchOpen(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setSearchOpen(true)}
-                  >
-                    <Search className="h-5 w-5" />
-                    <span className="sr-only">Search</span>
-                  </Button>
-                )}
-              </div> */}
 
-              {!searchOpen && <ModeToggle />}
-              {/* Cart */}
-              {!searchOpen && isLoggedIn && <CartSheet />}
-
-              {!searchOpen &&
+              <ModeToggle />
+              {isLoggedIn && <CartSheet />}
+              {
                 isLoggedIn ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -182,6 +149,7 @@ export default function Header({ isLoggedIn }: { isLoggedIn: boolean, isAdmin: b
                       <DropdownMenuLabel>My Account</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => navigate({ to: "/account" })}>Profile</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate({ to: "/orders" })}>Orders</DropdownMenuItem>
+                      { isAdmin ? <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>Admin View</DropdownMenuItem> : <></> }
                     </DropdownMenuGroup>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem

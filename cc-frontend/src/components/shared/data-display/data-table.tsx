@@ -58,6 +58,8 @@ export interface DataTableProps<T> {
   isLoading?: boolean
   /** Mobile: render a summary line under the first cell */
   mobileSubline?: (row: T) => ReactNode
+  onRowClick?: (row: T) => void
+
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -81,6 +83,7 @@ export function DataTable<T>({
   emptyMessage = 'No records found.',
   isLoading = false,
   mobileSubline,
+  onRowClick
 }: DataTableProps<T>) {
   const [search, setSearch] = useState('')
   const [pageSize, setPageSize] = useState(defaultPageSize)
@@ -217,7 +220,11 @@ export function DataTable<T>({
                 paged.map((row) => (
                   <tr
                     key={rowKey(row)}
-                    className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
+                    onClick={() => onRowClick?.(row)}
+                    className={[
+                      'border-b border-border last:border-0 hover:bg-muted/30 transition-colors',
+                      onRowClick ? 'cursor-pointer' : '',
+                    ].join(' ')}
                   >
                     {columns.map((col) => (
                       <td
@@ -259,7 +266,11 @@ export function DataTable<T>({
             return (
               <div
                 key={rowKey(row)}
-                className="rounded-xl border border-border bg-card p-4 space-y-3"
+                onClick={() => onRowClick?.(row)}
+                className={[
+                  'rounded-xl border border-border bg-card p-4 space-y-3',
+                  onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-colors' : '',
+                ].join(' ')}
               >
                 {/* Primary row */}
                 <div className="flex items-start justify-between gap-3">

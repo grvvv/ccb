@@ -19,7 +19,7 @@ class CarouselService extends BaseApiClient {
   }
 
   async deleteById(id: string): Promise<void> {
-    return this.delete<void>(`category/delete/${id}/`);
+    return this.delete<void>(`carousel/delete/${id}/`);
   }
 }
 

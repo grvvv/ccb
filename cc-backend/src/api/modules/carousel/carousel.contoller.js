@@ -99,3 +99,20 @@ exports.updateCarousel = async (req, res) => {
   }
 
 }
+
+
+exports.deleteCarousel = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const carousel = await Carousel.findById(id);
+    if (!carousel) return res.status(404).json({ message: "Carousel not found" });
+    if (carousel.imageUrl) await storage.deleteFile(carousel.imageUrl);
+    await carousel.deleteOne();
+    return res.status(200).json({ message: "Carousel deleted successfully" });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error"
+    });
+  }
+};

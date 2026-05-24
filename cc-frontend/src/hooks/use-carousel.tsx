@@ -18,8 +18,8 @@ export function useUpdateCarousel() {
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       carouselService.update(id, data),
     onSuccess: (data) => {
-      queryClient.setQueryData(['categories', data._id], data);
-      queryClient.invalidateQueries({ queryKey: ['category', 'list'] });
+      queryClient.setQueryData(['carousel', data._id], data);
+      queryClient.invalidateQueries({ queryKey: ['carousel', 'list'] });
     },
   });
 }
@@ -31,10 +31,10 @@ export function useDeleteCarousel() {
     mutationFn: (id: string) =>
       carouselService.deleteById(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['category', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['carousel', 'list'] });
     },
     onError: (error) => {
-      console.error('Failed to delete category:', error);
+      console.error('Failed to delete carousel:', error);
     },
   });
 }
@@ -46,18 +46,18 @@ export function useCreateCarousel() {
     mutationFn: (data: CarouselForm) => carouselService.create(data),
     onSuccess: () => {
       // Invalidate and refetch categories list
-      queryClient.invalidateQueries({ queryKey: ['category', 'list'] });
-      queryClient.invalidateQueries({ queryKey: ['category', 'names'] });
+      queryClient.invalidateQueries({ queryKey: ['carousel', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['carousel', 'names'] });
     },
     onError: (error) => {
-      console.error('Failed to create category:', error);
+      console.error('Failed to create carousel:', error);
     },
   });
 }
 
 export function useCarousels() {
   return useQuery({
-    queryKey: ['carousel'],
+    queryKey: ['carousel', 'list'],
     queryFn: () => carouselService.list(),
   });
 }

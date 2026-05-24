@@ -1,7 +1,6 @@
 // routes/_public/(customer)/orders.tsx
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,12 +11,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useOrders } from "@/hooks/user-order";
+import { useMyOrders } from "@/hooks/user-order";
 import type { OrderDetails } from "@/types/order";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   Calendar,
-  ChevronRight,
   MapPin,
   Package,
   Phone,
@@ -92,8 +90,6 @@ function formatDate(date: string) {
 }
 
 function OrderCard({ order }: { order: OrderDetails }) {
-  const navigate = useNavigate();
-
   const orderStatus =
     orderStatusConfig[
     order.orderStatus as keyof typeof orderStatusConfig
@@ -121,11 +117,6 @@ function OrderCard({ order }: { order: OrderDetails }) {
   return (
     <Card
       className="hover:shadow-md transition-all cursor-pointer"
-      onClick={() =>
-        navigate({
-          to: `/orders/${order._id}`,
-        })
-      }
     >
       <CardContent className="p-5">
         {/* Header */}
@@ -156,10 +147,6 @@ function OrderCard({ order }: { order: OrderDetails }) {
               {formatDate(order.createdAt)}
             </div>
           </div>
-
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
         </div>
 
         {/* Body */}
@@ -274,7 +261,7 @@ function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const { data, isLoading } = useOrders({
+  const { data, isLoading } = useMyOrders({
     page: 1,
     limit: 20,
   });
@@ -345,15 +332,10 @@ function OrdersPage() {
 
               <SelectContent>
                 <SelectItem value="all">All Orders</SelectItem>
-
                 <SelectItem value="PLACED">Placed</SelectItem>
-
                 <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-
                 <SelectItem value="SHIPPED">Shipped</SelectItem>
-
                 <SelectItem value="DELIVERED">Delivered</SelectItem>
-
                 <SelectItem value="CANCELLED">Cancelled</SelectItem>
               </SelectContent>
             </Select>

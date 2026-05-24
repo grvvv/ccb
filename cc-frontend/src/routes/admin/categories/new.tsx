@@ -93,7 +93,7 @@ function AddCategory() {
             image: null,
         })
         setImagePreview('')
-        navigate({ to: '/admin' })
+        navigate({ to: '/admin/categories' })
     } catch (error) {
         toast.error('Failed to create category. Please try again.')
     } finally {

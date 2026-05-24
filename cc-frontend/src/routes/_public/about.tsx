@@ -35,7 +35,7 @@ function RouteComponent() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Hero */}
       <section className="border-b border-border">
-        <div className="max-w-5xl mx-auto px-6 py-20 md:py-18">
+        <div className="max-w-7xl mx-auto px-6 py-20 md:py-18">
           <span className="text-xs font-semibold uppercase tracking-widest text-primary">
             About Us
           </span>
@@ -53,7 +53,7 @@ function RouteComponent() {
 
       {/* Stats */}
       <section className="border-b border-border bg-muted/30">
-        <div className="max-w-5xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
           {stats.map((s) => (
             <div key={s.label} className="text-center">
               <div className="text-3xl font-bold text-primary">{s.value}</div>
@@ -65,7 +65,7 @@ function RouteComponent() {
 
       {/* Story */}
       <section className="border-b border-border">
-        <div className="max-w-5xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-12 items-center">
+        <div className="max-w-7xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-12 items-center">
           <div>
             <h2 className="text-2xl font-bold mb-4">Our Story</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
@@ -86,7 +86,7 @@ function RouteComponent() {
 
       {/* Values */}
       <section className="border-b border-border bg-muted/30">
-        <div className="max-w-5xl mx-auto px-6 py-16">
+        <div className="max-w-7xl mx-auto px-6 py-16">
           <h2 className="text-2xl font-bold mb-10">What We Stand For</h2>
           <div className="grid md:grid-cols-3 gap-6">
             {values.map((v) => (

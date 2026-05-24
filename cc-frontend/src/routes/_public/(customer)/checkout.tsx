@@ -22,6 +22,7 @@ import type { Address, OrderFormData } from '@/types/order'
 import '@/types/razorpay.d.ts'
 import { useMyProfile } from '@/hooks/use-user'
 import { AddressSelector } from '@/components/features/checkout/address-selector'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/_public/(customer)/checkout')({
   component: CreateOrder,
@@ -77,12 +78,6 @@ function CreateOrder() {
 
       let { order, razorpayOrder } = await orderService.create(orderData)
       const loaded = await loadRazorpayScript();
-      console.log({
-        loaded,
-        Razorpay: window.Razorpay,
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        razorpayOrder
-      });
 
       if (!loaded) throw new Error("Failed to load Razorpay");
 
@@ -112,6 +107,18 @@ function CreateOrder() {
             });
           }
         },
+
+        modal: {
+          ondismiss: async () => {
+              try {
+                await orderService.cancelUnpaidOrder(order._id);
+                toast.warning("Payment Cancelled")
+              } catch (error) {
+                toast.error("Error deleting cancelled order");
+              }
+            },
+          },
+
       };
 
       const razorpay = new window.Razorpay(options);

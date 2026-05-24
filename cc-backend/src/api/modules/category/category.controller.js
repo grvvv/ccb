@@ -74,18 +74,60 @@ exports.getFeaturedCategories = async (req, res) => {
 };
 
 exports.updateCategory = async (req, res) => {
-    try {
-        const category = await Category.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true }
-        );
+  try {
+    const { name, icon, parent, order } = req.body;
 
-        return res.json(category);
-    } catch (error) {
-        return res.status(500).json({error: "Internal Server Error"})
+    const category = await Category.findById(req.params.id);
+
+    if (!category) {
+      return res.status(404).json({
+        message: "Category not found"
+      });
     }
- 
+
+    const updateData = {
+      icon,
+      parent: parent || null,
+      order
+    };
+
+    if (name) {
+      updateData.name = name;
+      updateData.slug = slugify(name, { lower: true });
+    }
+
+    if (req.file) {
+      if (category.image) {
+        await storage.deleteFile(category.image);
+      }
+
+      const result = await storage.uploadFile(req.file, {
+        subdir: "category",
+        filename: `${updateData.slug || category.slug}-${Date.now()}`,
+        resize: { width: 1000 }
+      });
+
+      updateData.image = result.path;
+    }
+
+    const updatedCategory = await Category.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+
+    return res.status(200).json({
+      message: "Category Updated",
+      result: updatedCategory
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
 };
 
 exports.toggleCategoryStatus = async (req, res) => {

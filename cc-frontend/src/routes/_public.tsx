@@ -11,14 +11,21 @@ export const Route = createFileRoute('/_public')({
 })
 
 function Index() {
-    const isLoggedIn = authService.isAuth()
-    const role = authService.getRole()
+  const isLoggedIn = authService.isAuth()
+  const role = authService.getRole()
 
-    return (
-      <div>
-        <Header isLoggedIn={isLoggedIn} isAdmin={role === 'admin'} />
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header
+        isLoggedIn={isLoggedIn}
+        isAdmin={role === 'admin'}
+      />
+
+      <main className="flex-1">
         <Outlet />
-        <Footer />
-      </div>
-    )
+      </main>
+
+      <Footer />
+    </div>
+  )
 }

@@ -18,13 +18,11 @@ export interface OrderItem {
 }
 
 export interface OrderItemDetails {
-    product: {
-        _id: string
-        name: string
-    },
+    product: string
     name: string
     quantity: number
     price: number
+    image: string
     sellingPrice: number
     _id: string
 }
@@ -34,23 +32,38 @@ export interface CreateOrderResponse {
     razorpayOrder: RazorpayOrder
 }
 
+
+export interface OrderUser {
+  _id: string
+  name: string
+  email: string
+}
+
+export type OrderStatus = 'PLACED' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
+export type PaymentStatus = 'CREATED' | 'PAID' | 'FAILED' | 'REFUNDED'
+
+
 export interface OrderDetails {
     _id: string
-    user: {
-        _id: string
-        name: string
-        email: string
-    }
+    user: OrderUser
     items: OrderItemDetails[]
     totalAmount: number
-    subtotalAmount: number,
-    shippingAmount: number,
-    paymentStatus: 'PENDING' | 'PAID' | 'FAILED'
-    orderStatus: 'PLACED' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
+    shippingAmount: number
+    subtotalAmount: number
     address: Address
-    razorpayOrderId?: string
+    orderStatus: OrderStatus
+    paymentStatus: PaymentStatus
+    razorpayOrderId: string | null
+    razorpayPaymentId: string | null
+    razorpaySignature: string | null
     createdAt: string
     updatedAt: string
+    __v: number
+}
+
+export interface OrderDetailsResponse {
+    result: OrderDetails
+    message: string
 }
 
 export interface OrderList {
