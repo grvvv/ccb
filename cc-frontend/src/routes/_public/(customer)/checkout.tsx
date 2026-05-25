@@ -110,14 +110,14 @@ function CreateOrder() {
 
         modal: {
           ondismiss: async () => {
-              try {
-                await orderService.cancelUnpaidOrder(order._id);
-                toast.warning("Payment Cancelled")
-              } catch (error) {
-                toast.error("Error deleting cancelled order");
-              }
-            },
+            try {
+              await orderService.cancelUnpaidOrder(order._id);
+              toast.warning("Payment Cancelled")
+            } catch (error) {
+              toast.error("Error deleting cancelled order");
+            }
           },
+        },
 
       };
 
@@ -157,91 +157,101 @@ function CreateOrder() {
             <div className="lg:col-span-2 space-y-6 min-w-0">
               {/* Cart Items */}
               <Card>
-                <CardHeader>
+                <CardHeader className="pb-3">
                   <CardTitle className="text-base font-medium flex items-center gap-2">
                     <ShoppingBag className="h-4 w-4 text-primary" />
                     Order Items ({cartItems.length})
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {cartItems.map((item) => (
-                    <div key={item._id}>
-                      <div className="flex gap-4">
-                        {/* Image */}
-                        <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-border bg-secondary shrink-0">
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
 
-                        {/* Details */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-sm text-foreground line-clamp-2">
-                            {item.name}
-                          </h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-sm font-semibold text-primary">
-                              ₹{item.sellingPrice.toFixed(2)}
-                            </span>
-                            {item.sellingPrice !== item.price && (
-                              <span className="text-xs text-muted-foreground line-through">
-                                ₹{item.price.toFixed(2)}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Quantity Controls */}
-                          <div className="flex items-center gap-3 mt-3">
-                            <div className="flex items-center border border-border rounded-lg">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 rounded-none"
-                                onClick={() => updateQuantity(item.product, item.quantity - 1)}
-                                disabled={item.quantity <= 1}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="px-3 text-sm font-medium min-w-8 text-center">
-                                {item.quantity}
-                              </span>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 rounded-none"
-                                onClick={() => updateQuantity(item.product, item.quantity + 1)}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            </div>
-
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => removeItem(item.product)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                            <span className="text-xs text-muted-foreground ml-auto">
-                              Subtotal: ₹{(subtotal).toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      {/* {index < cartItems.length - 1 && <Separator className="mt-4" />} */}
-                    </div>
-                  ))}
-
-                  {cartItems.length === 0 && (
+                <CardContent className="px-4 sm:px-6">
+                  {cartItems.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                       <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
                       <p className="text-sm">Your cart is empty</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {cartItems.map((item) => {
+                        return (
+                          <div key={item._id} className="flex gap-3 py-4 first:pt-0 last:pb-0">
+                            {/* Image */}
+                            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border border-border bg-secondary shrink-0">
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+
+                            {/* Right side */}
+                            <div className="flex-1 min-w-0 flex flex-col gap-2">
+                              {/* Name + remove */}
+                              <div className="flex items-start justify-between gap-2">
+                                <h3 className="text-sm font-medium text-foreground line-clamp-2 leading-tight">
+                                  {item.name}
+                                </h3>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive -mt-0.5"
+                                  onClick={() => removeItem(item.product)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+
+                              {/* Price row */}
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold text-primary tabular-nums">
+                                  ₹{item.sellingPrice.toFixed(2)}
+                                </span>
+                                {item.sellingPrice !== item.price && (
+                                  <span className="text-xs text-muted-foreground line-through tabular-nums">
+                                    ₹{item.price.toFixed(2)}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Qty + line total */}
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center border border-border rounded-lg overflow-hidden">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 rounded-none border-0"
+                                    onClick={() => updateQuantity(item.product, item.quantity - 1)}
+                                    disabled={item.quantity <= 1}
+                                  >
+                                    <Minus className="h-3 w-3" />
+                                  </Button>
+                                  <span className="w-7 text-center text-xs font-medium tabular-nums select-none">
+                                    {item.quantity}
+                                  </span>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 rounded-none border-0"
+                                    onClick={() => updateQuantity(item.product, item.quantity + 1)}
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </Button>
+                                </div>
+
+                                <span className="text-xs text-muted-foreground tabular-nums">
+                                  Total:{' '}
+                                  <span className="font-semibold text-foreground">
+                                    ₹{subtotal.toFixed(2)}
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </CardContent>

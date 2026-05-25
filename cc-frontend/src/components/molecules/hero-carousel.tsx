@@ -44,7 +44,7 @@ export function HeroCarousel() {
   if (heroSlides.length === 0) return null
 
   return (
-    <div className="relative w-full h-[300px] sm:h-[400px] lg:h-[600px] overflow-hidden">
+    <div className="relative w-full h-[200px] sm:h-[300px] lg:h-[400px] overflow-hidden">
       {heroSlides.map((slide, index) => (
         <div
           key={slide._id || index}

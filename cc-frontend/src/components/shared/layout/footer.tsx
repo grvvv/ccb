@@ -89,14 +89,14 @@ export function Footer() {
       <div className="border-t border-border">
         <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Socials */}
-          <div className="flex items-center gap-2">
+          <div className="">
               <a
                 key="Instagram"
                 href="https://www.instagram.com/cc_bakebox_"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="instagram-link"
-                className="opacity-90 hover:opacity-100 hover:scale-110 transition-all duration-150"
+                className="opacity-90 hover:opacity-100 hover:scale-110 transition-all duration-150 flex items-center gap-2"
               >
                 <Instagram /> cc_bakebox_
               </a>

@@ -8,6 +8,10 @@ export const Route = createFileRoute('/_public/category/')({
 
 function RouteComponent() {
   return (
-    <CategoriesSection />
+    <section className="py-10 sm:py-14 bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <CategoriesSection />
+      </div>
+    </section>
   )
 }
