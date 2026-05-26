@@ -1,5 +1,6 @@
 import { ArrowLeft, ShoppingBag, Search, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "@tanstack/react-router";
 
 export default function NotFound() {
   return (
@@ -36,16 +37,16 @@ export default function NotFound() {
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs sm:max-w-sm">
           <Button asChild className="flex-1 gap-2">
-            <a href="/">
+            <Link to="/">
               <Home className="h-4 w-4" />
               Go Home
-            </a>
+            </Link>
           </Button>
           <Button asChild variant="outline" className="flex-1 gap-2">
-            <a href="/product">
+            <Link to="/checkout">
               <Search className="h-4 w-4" />
               Browse Shop
-            </a>
+            </Link>
           </Button>
         </div>
 
@@ -62,9 +63,9 @@ export default function NotFound() {
       {/* Footer note */}
       <div className="py-6 text-center text-xs text-muted-foreground">
         Need help?{" "}
-        <a href="/contact" className="underline underline-offset-2 hover:text-foreground transition-colors">
+        <Link to="/contact" className="underline underline-offset-2 hover:text-foreground transition-colors">
           Contact support
-        </a>
+        </Link>
       </div>
     </div>
   );

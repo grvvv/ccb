@@ -56,8 +56,10 @@ export function useCreateCategory() {
 }
 
 export function useCategories(params?: { page?: number; limit?: number; search?: string }) {
+  const { page, limit, search } = params ?? {}
   return useQuery({
-    queryKey: ['category', 'list', params],
+    queryKey: ['category', 'list', { page, limit, search }],
     queryFn: () => categoryService.list(params),
+    staleTime: 5 * 60 * 1000, 
   });
 }

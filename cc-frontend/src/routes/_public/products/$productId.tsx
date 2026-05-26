@@ -1,5 +1,5 @@
 import { useProductDetails } from '@/hooks/use-product';
-import { createFileRoute, useParams } from '@tanstack/react-router';
+import { createFileRoute, Link, useParams } from '@tanstack/react-router';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { useState, useMemo } from 'react';
@@ -38,7 +38,7 @@ function RouteComponent() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Internal Server Error</h2>
-          <a href="/products" className="text-primary hover:underline">Go back to products</a>
+          <Link to="/products" className="text-primary hover:underline">Go back to products</Link>
         </div>
       </div>
     );
@@ -57,7 +57,7 @@ function RouteComponent() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-foreground mb-2">Product not found</h2>
-          <a href="/products" className="text-primary hover:underline">Go back to products</a>
+          <Link to="/products" className="text-primary hover:underline">Go back to products</Link>
         </div>
       </div>
     );

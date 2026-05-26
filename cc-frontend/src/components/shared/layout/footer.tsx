@@ -1,4 +1,3 @@
-import { useCategories } from '@/hooks/use-category'
 import type { CategoryDetails } from '@/types/category'
 import { Link } from '@tanstack/react-router'
 import {
@@ -7,6 +6,7 @@ import {
   MapPin,
   Instagram
 } from 'lucide-react'
+import { useMemo } from 'react'
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 const COMPANY_LINKS = [
@@ -40,16 +40,16 @@ function FooterLinkGroup({ title, links }: { title: string; links: { label: stri
   )
 }
 
-export function Footer() {
-  const { data } = useCategories()
-  const categories: CategoryDetails[] = data?.result || [];
+export function Footer({ categories }: { categories: CategoryDetails[] }) {
 
-  const CATEGORY_LINKS = categories
-    .slice(0, 5)
-    .map((category) => ({
-      label: category.name,
-      href: `/category/${category.slug}`,
-  }));
+  const CATEGORY_LINKS = useMemo(() =>
+    categories.slice(0, 5).map((cat) => ({
+      label: cat.name,
+      href: `/category/${cat.slug}`,
+    })),
+    [categories]
+  )
+
 
   return (
     <footer className="border-t border-border bg-background">

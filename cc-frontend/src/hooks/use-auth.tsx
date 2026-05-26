@@ -3,21 +3,15 @@ import { authService as apiAuthService } from '@/services/auth.service'
 import type { LoginCredentials, RegisterCredentials } from '@/types/auth'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
+import { useCallback, useMemo } from 'react'
 
 export function useAuth() {
   const queryClient = useQueryClient()
   const router = useRouter()
 
-  const {
-    data: user,
-    isLoading,
-    error,
-  } = useQuery({
+  const {data: user, isLoading, error} = useQuery({
     queryKey: ['user'],
-    queryFn: async () => {
-      const user = await apiAuthService.getMe()
-      return user
-    },
+    queryFn: () => apiAuthService.getMe(),
     enabled: authService.isAuth(),
     retry: false,
     staleTime: 5 * 60 * 1000,
@@ -51,16 +45,16 @@ export function useAuth() {
     },
   })
 
-  const logout = () => {
+  const logout = useCallback(() => {
     authService.logout()
     queryClient.removeQueries({ queryKey: ['user'] })
     router.navigate({ to: '/login' })
-  }
+  }, [queryClient, router])
 
-  return {
+  return useMemo(() => ({
     user,
     role: user?.role ?? null,
-    isAuthenticated: authService.isAuth(),
+    isAuthenticated: !!user,   // ✅ derive from query data, not localStorage
     isLoading,
     error,
     login: loginMutation.mutate,
@@ -70,5 +64,5 @@ export function useAuth() {
     loginError: loginMutation.error,
     isRegistering: registerMutation.isPending,
     registerError: registerMutation.error,
-  }
+  }), [user, isLoading, error, loginMutation, registerMutation, logout])
 }

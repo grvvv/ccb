@@ -152,13 +152,6 @@ function RouteComponent() {
               )}
             />
 
-            {/* Forgot Password */}
-            {/* <div className="flex items-center justify-end">
-              <a href="#" className="text-sm text-primary hover:underline">
-                Forgot password?
-              </a>
-            </div> */}
-
             {/* Submit Button */}
             <Button
               type="submit"
