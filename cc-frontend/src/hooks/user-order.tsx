@@ -65,7 +65,7 @@ export function useMyOrders(params?: { page?: number; limit?: number; search?: s
 }
 
 
-export function useOrders(params?: { page?: number; limit?: number; search?: string }) {
+export function useOrders(params?: { page?: number; limit?: number; search?: string, orderStatus: string | undefined }) {
   return useQuery({
     queryKey: ['orders', 'list', params],
     queryFn: () => orderService.list(params),

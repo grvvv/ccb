@@ -213,6 +213,13 @@ function OrderCard({ order }: { order: OrderDetails }) {
                 key={`${item.product}-${index}`}
                 className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2"
               >
+                <div className="w-8 h-8 sm:w-20 sm:h-20 rounded-lg overflow-hidden border border-border shrink-0 mr-1.5">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{item.name}</p>
 

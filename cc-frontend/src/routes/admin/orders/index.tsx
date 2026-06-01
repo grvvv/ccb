@@ -2,8 +2,8 @@ import { Badge } from '@/components/ui/badge'
 import { useOrders } from '@/hooks/user-order'
 import type { OrderDetails } from '@/types/order'
 import { createFileRoute } from '@tanstack/react-router'
-import { Package } from 'lucide-react'
-import { useState } from 'react'
+import { debounce } from 'lodash'
+import { useMemo, useEffect, useState } from 'react'
 import {
   Select,
   SelectContent,
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { DataTable, type ColumnDef } from '@/components/shared/data-display/data-table'
+import { DataTable, type ColumnDef, type SortState } from '@/components/shared/data-display/data-table'
 import { useNavigate } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/admin/orders/')({
@@ -74,7 +74,6 @@ const columns: ColumnDef<OrderDetails>[] = [
   {
     key: 'orderId',
     header: 'Order',
-    sortAccessor: (row) => row._id,
     cell: (row) => (
       <div>
         <p className="text-xs font-mono text-foreground">
@@ -90,7 +89,6 @@ const columns: ColumnDef<OrderDetails>[] = [
     key: 'customer',
     header: 'Customer',
     hideOnMobile: true,
-    sortAccessor: (row) => row.user?.name ?? '',
     cell: (row) => (
       <div>
         <p className="text-sm font-medium text-foreground">
@@ -136,11 +134,10 @@ const columns: ColumnDef<OrderDetails>[] = [
   {
     key: 'orderStatus',
     header: 'Order Status',
-    sortAccessor: (row) => row.orderStatus,
     cell: (row) => {
       const cfg =
         statusConfig.orderStatus[
-          row.orderStatus as keyof typeof statusConfig.orderStatus
+        row.orderStatus as keyof typeof statusConfig.orderStatus
         ] ?? statusConfig.orderStatus.PLACED
       return (
         <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
@@ -153,11 +150,10 @@ const columns: ColumnDef<OrderDetails>[] = [
     key: 'paymentStatus',
     header: 'Payment',
     hideOnMobile: true,
-    sortAccessor: (row) => row.paymentStatus,
     cell: (row) => {
       const cfg =
         statusConfig.paymentStatus[
-          row.paymentStatus as keyof typeof statusConfig.paymentStatus
+        row.paymentStatus as keyof typeof statusConfig.paymentStatus
         ] ?? statusConfig.paymentStatus.CREATED
       return (
         <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
@@ -170,7 +166,6 @@ const columns: ColumnDef<OrderDetails>[] = [
     key: 'total',
     header: 'Total',
     align: 'right',
-    sortAccessor: (row) => row.totalAmount,
     cell: (row) => (
       <div className="text-right">
         <p className="text-sm font-semibold text-primary">
@@ -185,79 +180,101 @@ const columns: ColumnDef<OrderDetails>[] = [
 ]
 
 function OrdersPage() {
-  const [statusFilter, setStatusFilter] = useState('all')
-  const { data: ordersData, isLoading } = useOrders({ page: 1, limit: 100 })
-  const orders = ordersData?.result ?? []
-  const total = ordersData?.total ?? 0
   const navigate = useNavigate()
 
-  const filteredOrders =
-    statusFilter === 'all'
-      ? orders
-      : orders.filter((o) => o.orderStatus === statusFilter)
+  // All table state lives here
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [sort, setSort] = useState<SortState | undefined>(undefined)
+
+  const handleStatusFilter = (val: string) => { setStatusFilter(val); setPage(1) }
+
+  // Everything funnels into the query
+  const { data: ordersData, isLoading } = useOrders({
+    page,
+    limit: pageSize,
+    search: debouncedSearch || undefined,
+    orderStatus: statusFilter === 'all' ? undefined : statusFilter,
+  })
+
+  const orders = ordersData?.result ?? []
+  const total = ordersData?.total ?? 0
+
+  const debouncedSetSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        setDebouncedSearch(value)
+      }, 600),
+    []
+  )
+  const handleSearch = (val: string) => {
+    setSearch(val);
+    setPage(1);
+    debouncedSetSearch(val)
+  }
+
+  useEffect(() => {
+    return () => {
+      debouncedSetSearch.cancel()
+    }
+  }, [debouncedSetSearch])
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <div className="border-b border-border bg-card">
         <div className="mx-auto max-w-6xl px-6 py-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-foreground">Orders</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Manage and track all customer orders
-              </p>
+              <p className="mt-1 text-sm text-muted-foreground">Manage and track all customer orders</p>
             </div>
-            <Badge variant="outline" className="w-fit text-xs">
-              {total} Total Orders
-            </Badge>
+            <Badge variant="outline" className="w-fit text-xs">{total} Total Orders</Badge>
           </div>
         </div>
       </div>
 
-      {/* Table */}
       <div className="mx-auto max-w-6xl px-6 py-8">
-        {orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center text-muted-foreground">
-            <Package className="mb-4 h-16 w-16 opacity-50" />
-            <p className="mb-1 text-lg font-medium">No orders found</p>
-            <p className="text-sm">Orders will appear here once customers place them</p>
-          </div>
-        ) : (
-          <DataTable
-            data={filteredOrders}
-            onRowClick={(row) => navigate({ to: '/admin/orders/$orderId', params: { orderId: row._id } })}
-            columns={columns}
-            rowKey={(row) => row._id}
-            searchable
-            searchFields={(row) =>
-              [
-                row._id,
-                row.user?.name ?? '',
-                row.user?.email ?? '',
-              ].join(' ')
-            }
-            defaultPageSize={10}
-            isLoading={isLoading}
-            emptyMessage="No orders match your search or filter."
-            mobileSubline={(row) => row.user?.email ?? ''}
-            toolbar={
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-9 w-40 text-sm">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Orders</SelectItem>
-                  <SelectItem value="PLACED">Placed</SelectItem>
-                  <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                  <SelectItem value="SHIPPED">Shipped</SelectItem>
-                  <SelectItem value="DELIVERED">Delivered</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            }
-          />
-        )}
+        <DataTable
+          data={orders}
+          columns={columns}
+          rowKey={(row) => row._id}
+          // Pagination
+          page={page}
+          pageSize={pageSize}
+          totalRows={total}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+          // Search
+          searchable
+          search={search}
+          onSearchChange={handleSearch}
+          // Sort
+          sort={sort}
+          onSortChange={setSort}
+          // Rest
+          isLoading={isLoading}
+          emptyMessage="No orders match your search or filter."
+          mobileSubline={(row) => row.user?.email ?? ''}
+          onRowClick={(row) => navigate({ to: '/admin/orders/$orderId', params: { orderId: row._id } })}
+          toolbar={
+            <Select value={statusFilter} onValueChange={handleStatusFilter}>
+              <SelectTrigger className="h-9 w-40 text-sm">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Orders</SelectItem>
+                <SelectItem value="PLACED">Placed</SelectItem>
+                <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                <SelectItem value="SHIPPED">Shipped</SelectItem>
+                <SelectItem value="DELIVERED">Delivered</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          }
+        />
       </div>
     </div>
   )

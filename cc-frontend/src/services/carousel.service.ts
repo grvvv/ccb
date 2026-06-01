@@ -14,8 +14,8 @@ class CarouselService extends BaseApiClient {
     return this.put<CarouselDetails>(`carousel/update/${id}/`, data);
   }
 
-  async list(): Promise<CarouselList> {
-    return this.get<CarouselList>('carousel/');
+  async list(params?: { page?: number; limit?: number; search?: string }): Promise<CarouselList> {
+    return this.get<CarouselList>('carousel/', params);
   }
 
   async deleteById(id: string): Promise<void> {

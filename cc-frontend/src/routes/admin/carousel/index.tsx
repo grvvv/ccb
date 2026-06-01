@@ -22,8 +22,9 @@ import {
 import { useCarousels, useDeleteCarousel } from '@/hooks/use-carousel'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ExternalLink, GalleryHorizontal, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
-import { useState } from 'react'
-import { DataTable, type ColumnDef } from '@/components/shared/data-display/data-table'
+import { debounce } from 'lodash'
+import { useMemo, useEffect, useState } from 'react'
+import { DataTable, type ColumnDef, type SortState } from '@/components/shared/data-display/data-table'
 import type { CarouselDetails } from '@/types/carousel'
 
 export const Route = createFileRoute('/admin/carousel/')({
@@ -35,9 +36,23 @@ export const Route = createFileRoute('/admin/carousel/')({
 
 function CarouselsPage() {
   const navigate = useNavigate()
-  const { data: carouselsResponse, isLoading } = useCarousels()
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [sort, setSort] = useState<SortState | undefined>()
+  const { data: carouselsResponse, isLoading } = useCarousels({
+    page,
+    limit: pageSize,
+    search: debouncedSearch || undefined,
+  })
   const carousels = carouselsResponse?.result ?? []
+  const total = carouselsResponse?.result?.length ?? 0
 
+  const handleSort = (value: SortState | undefined) => {
+    setSort(value)
+    setPage(1)
+  }
   const deleteCarousel = useDeleteCarousel()
   const [deleteTarget, setDeleteTarget] = useState<CarouselDetails | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -55,12 +70,31 @@ function CarouselsPage() {
     }
   }
 
+  const debouncedSetSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        setDebouncedSearch(value)
+      }, 600),
+    []
+  )
+  const handleSearch = (val: string) => {
+    setSearch(val);
+    setPage(1);
+    debouncedSetSearch(val)
+  }
+
+  useEffect(() => {
+    return () => {
+      debouncedSetSearch.cancel()
+    }
+  }, [debouncedSetSearch])
+
   // ── Columns ─────────────────────────────────────────────────────────────
   const columns: ColumnDef<CarouselDetails>[] = [
     {
       key: 'slide',
       header: 'Slide',
-      sortAccessor: (r) => r.title,
+      sortable: true,
       cell: (row) => (
         <div className="flex items-center gap-3 min-w-0">
           {/* Banner thumbnail */}
@@ -89,7 +123,7 @@ function CarouselsPage() {
       header: 'Order',
       align: 'center',
       width: 'w-20',
-      sortAccessor: (r) => r.order,
+      sortable: true,
       hideOnMobile: true,
       cell: (row) => (
         <Badge variant="secondary" className="text-xs font-mono tabular-nums">
@@ -183,9 +217,25 @@ function CarouselsPage() {
           columns={columns}
           rowKey={(r) => r._id}
           isLoading={isLoading}
+
+          page={page}
+          pageSize={pageSize}
+          totalRows={total}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size)
+            setPage(1)
+          }}
+
           searchable
-          searchFields={(r) => [r.title, r.description ?? '', r.redirectUrl ?? ''].join(' ')}
+          search={search}
+          onSearchChange={handleSearch}
+
+          sort={sort}
+          onSortChange={handleSort}
+
           emptyMessage="No carousel slides yet. Add your first slide to get started."
+
           mobileSubline={(r) => (
             <span>
               Order #{r.order ?? 0}

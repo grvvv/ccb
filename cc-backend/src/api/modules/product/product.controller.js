@@ -5,231 +5,312 @@ const slugify = require("slugify")
 const container = require('@containers/awilix');
 const Category = require("../category/category.model");
 const { createImageLink } = require("../../utils/link-generator");
+const { parse } = require("dotenv");
 const storage = container.resolve('storage');
 
 exports.addProduct = async (req, res) => {
-  try {
-    let {
-      name,
-      category,
-      description,
-      price,
-      sellingPrice,
-      sku,
-      stock,
-      weight,
-      dimensions,
-      b2bPricingTiers = [],
-      isCODAvailable,
-    } = req.body;
-
-    const files = req.files || [];
-
-    // normalize numeric fields
-    price = Number(price);
-    sellingPrice = Number(sellingPrice);
-    stock = stock !== undefined ? Number(stock) : 10;
-    weight = Number(weight);
-
-    // normalize boolean
-    if (typeof isCODAvailable === "string") {
-      isCODAvailable = isCODAvailable === "true";
-    }
-
-    // required validations
-    if (
-      !name ||
-      !category ||
-      Number.isNaN(price) ||
-      Number.isNaN(sellingPrice) ||
-      !sku ||
-      Number.isNaN(weight) ||
-      !dimensions
-    ) {
-      return res.status(400).json({
-        message: "Missing or invalid required fields",
-      });
-    }
-
-    // validate pricing
-    if (sellingPrice > price) {
-      return res.status(400).json({
-        message: "Selling price cannot be greater than MRP",
-      });
-    }
-
-    // validate sku
-    const existingSKU = await Product.findOne({ sku });
-
-    if (existingSKU) {
-      return res.status(400).json({
-        message: "SKU already exists",
-      });
-    }
-
-    // validate category
-    const existingCategory = await Category.findOne({
-      _id: category,
-      isActive: true,
-    });
-
-    if (!existingCategory) {
-      return res.status(400).json({
-        message: "Invalid or inactive category",
-      });
-    }
-
-    // validate dimensions
-    let parsedDimensions;
-
     try {
-      parsedDimensions =
-        typeof dimensions === "string" ? JSON.parse(dimensions) : dimensions;
+        let {
+            name,
+            category,
+            description,
+            price,
+            sellingPrice,
+            stock,
+            weight,
+            dimensions,
+            variantOptions = [],
+            variants = [],
+            isCODAvailable,
+        } = req.body;
 
-      parsedDimensions.length = Number(parsedDimensions.length);
-      parsedDimensions.width = Number(parsedDimensions.width);
-      parsedDimensions.height = Number(parsedDimensions.height);
+        const files = req.files || [];
 
-      const { length, width, height } = parsedDimensions;
+        price = Number(price);
+        sellingPrice = Number(sellingPrice);
+        stock = Number(stock ?? 0);
+        weight = Number(weight);
 
-      if (Number.isNaN(length) || Number.isNaN(width) || Number.isNaN(height)) {
-        return res.status(400).json({
-          message: "Invalid dimension values",
-        });
-      }
-    } catch (error) {
-      return res.status(400).json({
-        message: "Invalid dimensions format",
-      });
-    }
-
-    // generate slug
-    const baseSlug = slugify(name, {
-      lower: true,
-      strict: true,
-      trim: true,
-    });
-
-    let slug = baseSlug;
-    let counter = 1;
-
-    while (await Product.findOne({ slug })) {
-      slug = `${baseSlug}-${counter++}`;
-    }
-
-    // validate b2b pricing tiers
-    let parsedTiers = [];
-
-    try {
-      parsedTiers =
-        typeof b2bPricingTiers === "string"
-          ? JSON.parse(b2bPricingTiers)
-          : b2bPricingTiers;
-    } catch (error) {
-      return res.status(400).json({
-        message: "Invalid B2B pricing tiers format",
-      });
-    }
-
-    if (!Array.isArray(parsedTiers)) {
-      return res.status(400).json({
-        message: "B2B pricing tiers must be an array",
-      });
-    }
-
-    parsedTiers = parsedTiers.map((tier) => ({
-      minQty: Number(tier.minQty),
-      maxQty:
-        tier.maxQty !== null && tier.maxQty !== undefined && tier.maxQty !== ""
-          ? Number(tier.maxQty)
-          : null,
-      price: Number(tier.price),
-    }));
-
-    if (parsedTiers.length > 0) {
-      parsedTiers.sort((a, b) => a.minQty - b.minQty);
-
-      for (let i = 0; i < parsedTiers.length; i++) {
-        const tier = parsedTiers[i];
-
-        if (Number.isNaN(tier.minQty) || Number.isNaN(tier.price)) {
-          return res.status(400).json({
-            message: "Invalid B2B tier data",
-          });
+        if (typeof isCODAvailable === "string") {
+            isCODAvailable = isCODAvailable === "true";
         }
 
-        if (tier.price > sellingPrice) {
-          return res.status(400).json({
-            message: "B2B price cannot exceed selling price",
-          });
-        }
-
-        if (tier.maxQty !== null && Number.isNaN(tier.maxQty)) {
-          return res.status(400).json({
-            message: "Invalid maxQty value",
-          });
-        }
-
-        if (tier.maxQty !== null && tier.maxQty < tier.minQty) {
-          return res.status(400).json({
-            message: "maxQty cannot be less than minQty",
-          });
-        }
-
-        if (i > 0) {
-          const prev = parsedTiers[i - 1];
-
-          if (prev.maxQty === null || tier.minQty <= prev.maxQty) {
+        if (
+            !name ||
+            !category ||
+            Number.isNaN(price) ||
+            Number.isNaN(sellingPrice) ||
+            Number.isNaN(weight) ||
+            !dimensions
+        ) {
             return res.status(400).json({
-              message: "B2B pricing tiers overlap",
+                message: "Missing or invalid required fields",
             });
-          }
         }
-      }
+
+        if (sellingPrice > price) {
+            return res.status(400).json({
+                message: "Selling price cannot be greater than MRP",
+            });
+        }
+
+        const existingCategory = await Category.findOne({
+            _id: category,
+            isActive: true,
+        });
+
+        if (!existingCategory) {
+            return res.status(400).json({
+                message: "Invalid or inactive category",
+            });
+        }
+
+        let parsedDimensions;
+
+        try {
+            parsedDimensions =
+                typeof dimensions === "string"
+                    ? JSON.parse(dimensions)
+                    : dimensions;
+
+            parsedDimensions.length = Number(parsedDimensions.length);
+            parsedDimensions.width = Number(parsedDimensions.width);
+            parsedDimensions.height = Number(parsedDimensions.height);
+
+            if (
+                Number.isNaN(parsedDimensions.length) ||
+                Number.isNaN(parsedDimensions.width) ||
+                Number.isNaN(parsedDimensions.height)
+            ) {
+                return res.status(400).json({
+                    message: "Invalid dimension values",
+                });
+            }
+        } catch {
+            return res.status(400).json({
+                message: "Invalid dimensions format",
+            });
+        }
+
+        let parsedVariantOptions = [];
+
+        try {
+            parsedVariantOptions =
+                typeof variantOptions === "string"
+                    ? JSON.parse(variantOptions)
+                    : variantOptions;
+        } catch {
+            return res.status(400).json({
+                message: "Invalid variant options format",
+            });
+        }
+
+        if (!Array.isArray(parsedVariantOptions)) {
+            return res.status(400).json({
+                message: "Variant options must be an array",
+            });
+        }
+
+        let parsedVariants = [];
+
+        try {
+            parsedVariants =
+                typeof variants === "string"
+                    ? JSON.parse(variants)
+                    : variants;
+        } catch {
+            return res.status(400).json({
+                message: "Invalid variants format",
+            });
+        }
+
+        if (!Array.isArray(parsedVariants)) {
+            return res.status(400).json({
+                message: "Variants must be an array",
+            });
+        }
+
+        parsedVariants = parsedVariants.map((variant) => ({
+            sku: variant.sku?.trim().toUpperCase(),
+
+            attributes:
+                variant.attributes &&
+                    typeof variant.attributes === "object"
+                    ? Object.fromEntries(
+                        Object.entries(variant.attributes).map(([key, value]) => [
+                            key.toLowerCase().trim(),
+                            String(value).trim(),
+                        ])
+                    )
+                    : {},
+
+            stock: Number(variant.stock),
+
+            price:
+                variant.price !== undefined
+                    ? Number(variant.price)
+                    : undefined,
+
+            sellingPrice:
+                variant.sellingPrice !== undefined
+                    ? Number(variant.sellingPrice)
+                    : undefined,
+
+            weight:
+                variant.weight !== undefined
+                    ? Number(variant.weight)
+                    : undefined,
+
+            dimensions: variant.dimensions
+                ? {
+                    length: Number(variant.dimensions.length),
+                    width: Number(variant.dimensions.width),
+                    height: Number(variant.dimensions.height),
+                }
+                : undefined,
+        }));
+
+        const variantSKUSet = new Set();
+
+        for (const variant of parsedVariants) {
+            if (!variant.sku) {
+                return res.status(400).json({
+                    message: "Variant SKU is required",
+                });
+            }
+
+            if (variantSKUSet.has(variant.sku)) {
+                return res.status(400).json({
+                    message: `Duplicate variant SKU: ${variant.sku}`,
+                });
+            }
+
+            variantSKUSet.add(variant.sku);
+
+            if (
+                Number.isNaN(variant.stock) ||
+                variant.stock < 0
+            ) {
+                return res.status(400).json({
+                    message: `Invalid stock for SKU: ${variant.sku}`,
+                });
+            }
+
+            const variantPrice = variant.price ?? price;
+            const variantSellingPrice =
+                variant.sellingPrice ?? sellingPrice;
+
+            if (variantSellingPrice > variantPrice) {
+                return res.status(400).json({
+                    message: `Selling price cannot exceed MRP for SKU: ${variant.sku}`,
+                });
+            }
+
+            if (
+                variant.weight !== undefined &&
+                (Number.isNaN(variant.weight) || variant.weight < 0)
+            ) {
+                return res.status(400).json({
+                    message: `Invalid weight for SKU: ${variant.sku}`,
+                });
+            }
+
+            if (variant.dimensions) {
+                const { length, width, height } = variant.dimensions;
+
+                if (
+                    Number.isNaN(length) ||
+                    Number.isNaN(width) ||
+                    Number.isNaN(height)
+                ) {
+                    return res.status(400).json({
+                        message: `Invalid dimensions for SKU: ${variant.sku}`,
+                    });
+                }
+            }
+        }
+
+        const variantSkus = parsedVariants.map((v) => v.sku);
+
+        if (variantSkus.length > 0) {
+            const existingSKU = await Product.findOne({
+                "variants.sku": { $in: variantSkus },
+            });
+
+            if (existingSKU) {
+                return res.status(400).json({
+                    message: "One or more variant SKUs already exist",
+                });
+            }
+
+            stock = 0;
+        } else {
+            if (Number.isNaN(stock) || stock < 0) {
+                return res.status(400).json({
+                    message: "Invalid stock value",
+                });
+            }
+        }
+
+        const baseSlug = slugify(name, {
+            lower: true,
+            strict: true,
+            trim: true,
+        });
+
+        let slug = baseSlug;
+        let counter = 1;
+
+        while (await Product.findOne({ slug })) {
+            slug = `${baseSlug}-${counter++}`;
+        }
+
+        const uploadedImages = await Promise.all(
+            files.map((file) =>
+                storage.uploadFile(file, {
+                    subdir: "products",
+                    filename: `${slug}-${Date.now()}`,
+                    resize: { width: 1000 },
+                })
+            )
+        );
+
+        const imagePaths = uploadedImages.map((r) => r.path);
+
+        const product = await Product.create({
+            name,
+            category,
+            description,
+            slug,
+
+            stock,
+
+            price,
+            sellingPrice,
+
+            weight,
+            dimensions: parsedDimensions,
+
+            variantOptions: parsedVariantOptions,
+            variants: parsedVariants,
+
+            isCODAvailable,
+
+            productImages: imagePaths,
+            thumbnail: imagePaths[0] || null,
+        });
+
+        return res.status(201).json({
+            message: "Product Created",
+            result: product,
+        });
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            message: "Internal Server Error",
+        });
     }
-
-    // upload images
-    const uploadedImages = await Promise.all(
-      files.map((file) =>
-        storage.uploadFile(file, {
-          subdir: "products",
-          filename: `${slug}-${Date.now()}`,
-          resize: { width: 1000 },
-        }),
-      ),
-    );
-
-    const imagePaths = uploadedImages.map((r) => r.path);
-
-    // create product
-    const product = await Product.create({
-      name,
-      category,
-      description,
-      slug,
-      price,
-      sellingPrice,
-      sku,
-      stock,
-      weight,
-      dimensions: parsedDimensions,
-      b2bPricingTiers: parsedTiers,
-      isCODAvailable,
-      productImages: imagePaths,
-      thumbnail: imagePaths[0] || null,
-    });
-
-    return res.status(201).json({
-      message: "Product Created",
-      result: product,
-    });
-  } catch (error) {
-    console.error(error);
-
-    return res.status(500).json({
-      message: "Internal Server Error",
-    });
-  }
 };
 
 exports.deleteProduct = async (req, res) => {
@@ -274,19 +355,6 @@ exports.updateProduct = async (req, res) => {
             const price = updateData.price ?? product.price;
             const sellingPrice = updateData.sellingPrice ?? product.sellingPrice;
             if (sellingPrice > price) return res.status(400).json({ message: "Selling price cannot be greater than MRP" });
-        }
-
-        // validate sku
-        if (updateData.sku && updateData.sku !== product.sku) {
-            const existingSKU = await Product.findOne({
-                sku: updateData.sku,
-            });
-
-            if (existingSKU) {
-                return res.status(400).json({
-                    message: "SKU already exists",
-                });
-            }
         }
 
         // validate category
@@ -335,84 +403,176 @@ exports.updateProduct = async (req, res) => {
             }
         }
 
-        // validate b2b pricing tiers
-        if (updateData.b2bPricingTiers) {
-            let parsedTiers = [];
-
+        if (updateData.variantOptions) {
             try {
-                parsedTiers =
-                    typeof updateData.b2bPricingTiers === "string"
-                        ? JSON.parse(updateData.b2bPricingTiers)
-                        : updateData.b2bPricingTiers;
-            } catch (error) {
+                const parsedVariantOptions =
+                    typeof updateData.variantOptions === "string"
+                        ? JSON.parse(updateData.variantOptions)
+                        : updateData.variantOptions;
+
+                if (!Array.isArray(parsedVariantOptions)) {
+                    return res.status(400).json({
+                        message: "Variant options must be an array",
+                    });
+                }
+
+                updateData.variantOptions = parsedVariantOptions;
+            } catch {
                 return res.status(400).json({
-                    message: "Invalid B2B pricing tiers format",
+                    message: "Invalid variant options format",
                 });
             }
-
-            if (!Array.isArray(parsedTiers)) {
-                return res.status(400).json({
-                    message: "B2B pricing tiers must be an array",
-                });
-            }
-
-            const currentSellingPrice =
-                updateData.sellingPrice ?? product.sellingPrice;
-
-            parsedTiers = parsedTiers.map((tier) => ({
-                minQty: Number(tier.minQty),
-                maxQty:
-                    tier.maxQty !== null &&
-                        tier.maxQty !== undefined &&
-                        tier.maxQty !== ""
-                        ? Number(tier.maxQty)
-                        : null,
-                price: Number(tier.price),
-            }));
-
-            parsedTiers.sort((a, b) => a.minQty - b.minQty);
-
-            for (let i = 0; i < parsedTiers.length; i++) {
-                const tier = parsedTiers[i];
-
-                if (Number.isNaN(tier.minQty) || Number.isNaN(tier.price)) {
-                    return res.status(400).json({
-                        message: "Invalid B2B tier data",
-                    });
-                }
-
-                if (tier.price > currentSellingPrice) {
-                    return res.status(400).json({
-                        message: "B2B price cannot exceed selling price",
-                    });
-                }
-
-                if (tier.maxQty !== null && Number.isNaN(tier.maxQty)) {
-                    return res.status(400).json({
-                        message: "Invalid maxQty value",
-                    });
-                }
-
-                if (tier.maxQty !== null && tier.maxQty < tier.minQty) {
-                    return res.status(400).json({
-                        message: "maxQty cannot be less than minQty",
-                    });
-                }
-
-                if (i > 0) {
-                    const prev = parsedTiers[i - 1];
-
-                    if (prev.maxQty === null || tier.minQty <= prev.maxQty) {
-                        return res.status(400).json({
-                            message: "B2B pricing tiers overlap",
-                        });
-                    }
-                }
-            }
-
-            updateData.b2bPricingTiers = parsedTiers;
         }
 
+        if (updateData.variantOptions) {
+            try {
+                const parsedVariantOptions =
+                    typeof updateData.variantOptions === "string"
+                        ? JSON.parse(updateData.variantOptions)
+                        : updateData.variantOptions;
+
+                if (!Array.isArray(parsedVariantOptions)) {
+                    return res.status(400).json({
+                        message: "Variant options must be an array",
+                    });
+                }
+
+                updateData.variantOptions = parsedVariantOptions;
+            } catch {
+                return res.status(400).json({
+                    message: "Invalid variant options format",
+                });
+            }
+        }
+
+        if (updateData.variants) {
+            let parsedVariants;
+
+            try {
+                parsedVariants =
+                    typeof updateData.variants === "string"
+                        ? JSON.parse(updateData.variants)
+                        : updateData.variants;
+            } catch {
+                return res.status(400).json({
+                    message: "Invalid variants format",
+                });
+            }
+
+            if (!Array.isArray(parsedVariants)) {
+                return res.status(400).json({
+                    message: "Variants must be an array",
+                });
+            }
+
+            parsedVariants = parsedVariants.map((variant) => ({
+                sku: variant.sku?.trim().toUpperCase(),
+
+                attributes:
+                    variant.attributes &&
+                        typeof variant.attributes === "object"
+                        ? Object.fromEntries(
+                            Object.entries(variant.attributes).map(([key, value]) => [
+                                key.toLowerCase().trim(),
+                                String(value).trim(),
+                            ])
+                        )
+                        : {},
+
+                stock: Number(variant.stock),
+
+                price:
+                    variant.price !== undefined
+                        ? Number(variant.price)
+                        : undefined,
+
+                sellingPrice:
+                    variant.sellingPrice !== undefined
+                        ? Number(variant.sellingPrice)
+                        : undefined,
+
+                weight:
+                    variant.weight !== undefined
+                        ? Number(variant.weight)
+                        : undefined,
+
+                dimensions: variant.dimensions
+                    ? {
+                        length: Number(variant.dimensions.length),
+                        width: Number(variant.dimensions.width),
+                        height: Number(variant.dimensions.height),
+                    }
+                    : undefined,
+            }));
+
+            const skuSet = new Set();
+
+            const basePrice =
+                updateData.price ?? product.price;
+
+            const baseSellingPrice =
+                updateData.sellingPrice ?? product.sellingPrice;
+
+            for (const variant of parsedVariants) {
+                if (!variant.sku) {
+                    return res.status(400).json({
+                        message: "Variant SKU is required",
+                    });
+                }
+
+                if (skuSet.has(variant.sku)) {
+                    return res.status(400).json({
+                        message: `Duplicate variant SKU: ${variant.sku}`,
+                    });
+                }
+
+                skuSet.add(variant.sku);
+
+                if (
+                    Number.isNaN(variant.stock) ||
+                    variant.stock < 0
+                ) {
+                    return res.status(400).json({
+                        message: `Invalid stock for SKU: ${variant.sku}`,
+                    });
+                }
+
+                const variantPrice =
+                    variant.price ?? basePrice;
+
+                const variantSellingPrice =
+                    variant.sellingPrice ?? baseSellingPrice;
+
+                if (variantSellingPrice > variantPrice) {
+                    return res.status(400).json({
+                        message: `Selling price cannot exceed MRP for SKU: ${variant.sku}`,
+                    });
+                }
+            }
+
+            const variantSkus =
+                parsedVariants.map((v) => v.sku);
+
+            if (variantSkus.length) {
+                const existing = await Product.findOne({
+                    _id: { $ne: pid },
+                    "variants.sku": { $in: variantSkus },
+                });
+
+                if (existing) {
+                    return res.status(400).json({
+                        message: "One or more variant SKUs already exist",
+                    });
+                }
+            }
+
+            updateData.variants = parsedVariants;
+
+            if (parsedVariants.length > 0) {
+                updateData.stock = 0;
+            }
+        }
+        
         // upload new images
         let productImages = product.productImages;
 
@@ -442,10 +602,12 @@ exports.updateProduct = async (req, res) => {
         const updatedProduct = await Product.findByIdAndUpdate(pid, updateData, {
             new: true,
             runValidators: true,
-        });
+        }).populate("category", "name");
 
         const formatted = {
-            ...updatedProduct.toObject(),
+            ...updatedProduct.toObject({
+                flattenMaps: true,
+            }),
             category: updatedProduct.category?.name,
             productImages: updatedProduct.productImages.map(img => createImageLink(img)),
             thumbnail: createImageLink(updatedProduct.thumbnail)
@@ -487,7 +649,9 @@ exports.allProducts = async (req, res) => {
         const total = await Product.countDocuments(filter)
 
         const formatted = products.map((p) => ({
-            ...p.toObject(),
+            ...p.toObject({
+                flattenMaps: true,
+            }),
             thumbnail: createImageLink(p.thumbnail),
             category: p.category?.name
         }))
@@ -518,10 +682,13 @@ exports.productById = async (req, res) => {
         }
 
         const formatted = {
-            ...product.toObject(),
+            ...product.toObject({
+                flattenMaps: true,
+            }),
             category: product.category?.name,
             productImages: product.productImages.map(img => createImageLink(img)),
-            thumbnail: createImageLink(product.thumbnail)
+            thumbnail: createImageLink(product.thumbnail),
+            hasVariants: product.variants.length > 0
         };
 
         return res.status(200).json(formatted);

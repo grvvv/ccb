@@ -10,7 +10,7 @@ export const Route = createFileRoute('/_public/')({
   component: RouteComponent,
 })
 
-const LIMIT = 6
+const LIMIT = 8
 
 function RouteComponent() {
   const [page, setPage] = useState(1)

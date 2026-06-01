@@ -10,7 +10,9 @@ import { useNavigate } from "@tanstack/react-router";
 type Props = {
   product: ProductDetails;
   qty?: number;
+  variantId: string | null;
   className?: string;
+  stock: number;
   variant?: "default" | "outline";
   disabled?: boolean;
 };
@@ -18,6 +20,8 @@ type Props = {
 export function BuyNowButton({
   product,
   qty = 1,
+  variantId = null,
+  stock,
   className,
   variant = "outline",
   disabled,
@@ -26,17 +30,23 @@ export function BuyNowButton({
   let navigate = useNavigate({ from: "/products/$productId"})
 
   const handleAddToCart = () => {
-    if (product.stock <= 0) return;
+    if (stock <= 0) return;
 
-    addToCartMutation.mutate({
-      productId: product._id,
-      quantity: qty,
-    });
-
-    navigate({ to: "/checkout" })
+    addToCartMutation.mutate(
+      {
+        productId: product._id,
+        quantity: qty,
+        variantId,
+      },
+      {
+        onSuccess: () => {
+          navigate({ to: "/checkout" })
+        },
+      }
+    )
   };
 
-  const isOutOfStock = product.stock <= 0;
+  const isOutOfStock = stock <= 0;
 
   return (
     <Button

@@ -51,27 +51,48 @@ exports.createCategory = async (req, res) => {
 };
 
 exports.getFeaturedCategories = async (req, res) => {
-    try {
-        let categories = await Category.find({
-            isActive: true,
-            parent: null
-        })
-            .sort({ order: 1 })
-            .select("name slug icon image order");
+  try {
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 10
+    const skip = (page - 1) * limit
 
-        categories = categories.map(cat => ({
-            ...cat.toObject(),
-            image: createImageLink(cat.image)
-        }))
-        res.json({
-            message: "Categories Fetched",
-            result: categories
-        });
-    } catch (error) {
-        return res.status(500).json({error: "Internal Server Error"})
+    const search = req.query.search?.trim()
+
+    const filter = {
+      isActive: true,
+      parent: null,
     }
-  
-};
+
+    // 🔍 basic search on name
+    if (search) {
+      filter.name = { $regex: search, $options: 'i' }
+    }
+
+    // total count (for pagination UI)
+    const total = await Category.countDocuments(filter)
+
+    let categories = await Category.find(filter)
+      .sort({ order: 1 })
+      .skip(skip)
+      .limit(limit)
+      .select('name slug icon image order')
+
+    categories = categories.map((cat) => ({
+      ...cat.toObject(),
+      image: createImageLink(cat.image),
+    }))
+
+    return res.json({
+      message: 'Categories Fetched',
+      result: categories,
+      total,
+      page,
+      limit,
+    })
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal Server Error' })
+  }
+}
 
 exports.updateCategory = async (req, res) => {
   try {

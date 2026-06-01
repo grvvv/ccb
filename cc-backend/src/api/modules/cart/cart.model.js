@@ -11,6 +11,10 @@ const cartItemSchema = new mongoose.Schema({
   image: { type: String, required: true },
   price: { type: Number, required: true },
 
+  variantId: { type: mongoose.Schema.Types.ObjectId, default: null },
+  sku: { type: String },
+  attributes: { type: Map, of: String, default: {} },
+  
   sellingPrice: { type: Number, required: true },
   quantity: { type: Number, required: true, min: 1 },
   weight: { type: Number, required: true }

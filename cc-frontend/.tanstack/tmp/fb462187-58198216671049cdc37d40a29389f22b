@@ -23,18 +23,22 @@ import { Route as AdminCategoriesIndexRouteImport } from './routes/admin/categor
 import { Route as AdminCarouselIndexRouteImport } from './routes/admin/carousel/index'
 import { Route as PublicProductsIndexRouteImport } from './routes/_public/products/index'
 import { Route as PublicCategoryIndexRouteImport } from './routes/_public/category/index'
+import { Route as AdminProductsNewV2RouteImport } from './routes/admin/products/new-v2'
 import { Route as AdminProductsNewRouteImport } from './routes/admin/products/new'
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin/orders/$orderId'
 import { Route as AdminCategoriesNewRouteImport } from './routes/admin/categories/new'
 import { Route as AdminCarouselAddRouteImport } from './routes/admin/carousel/add'
+import { Route as AdminCarouselCarouselIdRouteImport } from './routes/admin/carousel/$carouselId'
 import { Route as PublicProductsProductIdRouteImport } from './routes/_public/products/$productId'
 import { Route as PublicCategorySlugRouteImport } from './routes/_public/category/$slug'
 import { Route as PubliccustomerOrdersRouteImport } from './routes/_public/(customer)/orders'
 import { Route as PubliccustomerCheckoutRouteImport } from './routes/_public/(customer)/checkout'
 import { Route as PubliccustomerAccountRouteImport } from './routes/_public/(customer)/account'
+import { Route as AdminProductsProductIdEditV2RouteImport } from './routes/admin/products/$productId.edit-v2'
 import { Route as AdminProductsProductIdEditRouteImport } from './routes/admin/products/$productId.edit'
 import { Route as AdminCategoriesCategoryIdEditRouteImport } from './routes/admin/categories/$categoryId.edit'
 import { Route as AdminCarouselCarouselIdEditRouteImport } from './routes/admin/carousel/$carouselId.edit'
+import { Route as PublicProductsDemoProductIdRouteImport } from './routes/_public/products/demo.$productId'
 
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
@@ -105,6 +109,11 @@ const PublicCategoryIndexRoute = PublicCategoryIndexRouteImport.update({
   path: '/category/',
   getParentRoute: () => PublicRoute,
 } as any)
+const AdminProductsNewV2Route = AdminProductsNewV2RouteImport.update({
+  id: '/products/new-v2',
+  path: '/products/new-v2',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminProductsNewRoute = AdminProductsNewRouteImport.update({
   id: '/products/new',
   path: '/products/new',
@@ -123,6 +132,11 @@ const AdminCategoriesNewRoute = AdminCategoriesNewRouteImport.update({
 const AdminCarouselAddRoute = AdminCarouselAddRouteImport.update({
   id: '/carousel/add',
   path: '/carousel/add',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCarouselCarouselIdRoute = AdminCarouselCarouselIdRouteImport.update({
+  id: '/carousel/$carouselId',
+  path: '/carousel/$carouselId',
   getParentRoute: () => AdminRoute,
 } as any)
 const PublicProductsProductIdRoute = PublicProductsProductIdRouteImport.update({
@@ -150,6 +164,12 @@ const PubliccustomerAccountRoute = PubliccustomerAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => PublicRoute,
 } as any)
+const AdminProductsProductIdEditV2Route =
+  AdminProductsProductIdEditV2RouteImport.update({
+    id: '/products/$productId/edit-v2',
+    path: '/products/$productId/edit-v2',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminProductsProductIdEditRoute =
   AdminProductsProductIdEditRouteImport.update({
     id: '/products/$productId/edit',
@@ -164,9 +184,15 @@ const AdminCategoriesCategoryIdEditRoute =
   } as any)
 const AdminCarouselCarouselIdEditRoute =
   AdminCarouselCarouselIdEditRouteImport.update({
-    id: '/carousel/$carouselId/edit',
-    path: '/carousel/$carouselId/edit',
-    getParentRoute: () => AdminRoute,
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AdminCarouselCarouselIdRoute,
+  } as any)
+const PublicProductsDemoProductIdRoute =
+  PublicProductsDemoProductIdRouteImport.update({
+    id: '/products/demo/$productId',
+    path: '/products/demo/$productId',
+    getParentRoute: () => PublicRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -182,19 +208,23 @@ export interface FileRoutesByFullPath {
   '/orders': typeof PubliccustomerOrdersRoute
   '/category/$slug': typeof PublicCategorySlugRoute
   '/products/$productId': typeof PublicProductsProductIdRoute
+  '/admin/carousel/$carouselId': typeof AdminCarouselCarouselIdRouteWithChildren
   '/admin/carousel/add': typeof AdminCarouselAddRoute
   '/admin/categories/new': typeof AdminCategoriesNewRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/admin/products/new': typeof AdminProductsNewRoute
+  '/admin/products/new-v2': typeof AdminProductsNewV2Route
   '/category': typeof PublicCategoryIndexRoute
   '/products': typeof PublicProductsIndexRoute
   '/admin/carousel': typeof AdminCarouselIndexRoute
   '/admin/categories': typeof AdminCategoriesIndexRoute
   '/admin/orders': typeof AdminOrdersIndexRoute
   '/admin/products': typeof AdminProductsIndexRoute
+  '/products/demo/$productId': typeof PublicProductsDemoProductIdRoute
   '/admin/carousel/$carouselId/edit': typeof AdminCarouselCarouselIdEditRoute
   '/admin/categories/$categoryId/edit': typeof AdminCategoriesCategoryIdEditRoute
   '/admin/products/$productId/edit': typeof AdminProductsProductIdEditRoute
+  '/admin/products/$productId/edit-v2': typeof AdminProductsProductIdEditV2Route
 }
 export interface FileRoutesByTo {
   '/login': typeof AuthLoginRoute
@@ -208,19 +238,23 @@ export interface FileRoutesByTo {
   '/orders': typeof PubliccustomerOrdersRoute
   '/category/$slug': typeof PublicCategorySlugRoute
   '/products/$productId': typeof PublicProductsProductIdRoute
+  '/admin/carousel/$carouselId': typeof AdminCarouselCarouselIdRouteWithChildren
   '/admin/carousel/add': typeof AdminCarouselAddRoute
   '/admin/categories/new': typeof AdminCategoriesNewRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/admin/products/new': typeof AdminProductsNewRoute
+  '/admin/products/new-v2': typeof AdminProductsNewV2Route
   '/category': typeof PublicCategoryIndexRoute
   '/products': typeof PublicProductsIndexRoute
   '/admin/carousel': typeof AdminCarouselIndexRoute
   '/admin/categories': typeof AdminCategoriesIndexRoute
   '/admin/orders': typeof AdminOrdersIndexRoute
   '/admin/products': typeof AdminProductsIndexRoute
+  '/products/demo/$productId': typeof PublicProductsDemoProductIdRoute
   '/admin/carousel/$carouselId/edit': typeof AdminCarouselCarouselIdEditRoute
   '/admin/categories/$categoryId/edit': typeof AdminCategoriesCategoryIdEditRoute
   '/admin/products/$productId/edit': typeof AdminProductsProductIdEditRoute
+  '/admin/products/$productId/edit-v2': typeof AdminProductsProductIdEditV2Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -237,19 +271,23 @@ export interface FileRoutesById {
   '/_public/(customer)/orders': typeof PubliccustomerOrdersRoute
   '/_public/category/$slug': typeof PublicCategorySlugRoute
   '/_public/products/$productId': typeof PublicProductsProductIdRoute
+  '/admin/carousel/$carouselId': typeof AdminCarouselCarouselIdRouteWithChildren
   '/admin/carousel/add': typeof AdminCarouselAddRoute
   '/admin/categories/new': typeof AdminCategoriesNewRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/admin/products/new': typeof AdminProductsNewRoute
+  '/admin/products/new-v2': typeof AdminProductsNewV2Route
   '/_public/category/': typeof PublicCategoryIndexRoute
   '/_public/products/': typeof PublicProductsIndexRoute
   '/admin/carousel/': typeof AdminCarouselIndexRoute
   '/admin/categories/': typeof AdminCategoriesIndexRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
   '/admin/products/': typeof AdminProductsIndexRoute
+  '/_public/products/demo/$productId': typeof PublicProductsDemoProductIdRoute
   '/admin/carousel/$carouselId/edit': typeof AdminCarouselCarouselIdEditRoute
   '/admin/categories/$categoryId/edit': typeof AdminCategoriesCategoryIdEditRoute
   '/admin/products/$productId/edit': typeof AdminProductsProductIdEditRoute
+  '/admin/products/$productId/edit-v2': typeof AdminProductsProductIdEditV2Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -266,19 +304,23 @@ export interface FileRouteTypes {
     | '/orders'
     | '/category/$slug'
     | '/products/$productId'
+    | '/admin/carousel/$carouselId'
     | '/admin/carousel/add'
     | '/admin/categories/new'
     | '/admin/orders/$orderId'
     | '/admin/products/new'
+    | '/admin/products/new-v2'
     | '/category'
     | '/products'
     | '/admin/carousel'
     | '/admin/categories'
     | '/admin/orders'
     | '/admin/products'
+    | '/products/demo/$productId'
     | '/admin/carousel/$carouselId/edit'
     | '/admin/categories/$categoryId/edit'
     | '/admin/products/$productId/edit'
+    | '/admin/products/$productId/edit-v2'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -292,19 +334,23 @@ export interface FileRouteTypes {
     | '/orders'
     | '/category/$slug'
     | '/products/$productId'
+    | '/admin/carousel/$carouselId'
     | '/admin/carousel/add'
     | '/admin/categories/new'
     | '/admin/orders/$orderId'
     | '/admin/products/new'
+    | '/admin/products/new-v2'
     | '/category'
     | '/products'
     | '/admin/carousel'
     | '/admin/categories'
     | '/admin/orders'
     | '/admin/products'
+    | '/products/demo/$productId'
     | '/admin/carousel/$carouselId/edit'
     | '/admin/categories/$categoryId/edit'
     | '/admin/products/$productId/edit'
+    | '/admin/products/$productId/edit-v2'
   id:
     | '__root__'
     | '/_public'
@@ -320,19 +366,23 @@ export interface FileRouteTypes {
     | '/_public/(customer)/orders'
     | '/_public/category/$slug'
     | '/_public/products/$productId'
+    | '/admin/carousel/$carouselId'
     | '/admin/carousel/add'
     | '/admin/categories/new'
     | '/admin/orders/$orderId'
     | '/admin/products/new'
+    | '/admin/products/new-v2'
     | '/_public/category/'
     | '/_public/products/'
     | '/admin/carousel/'
     | '/admin/categories/'
     | '/admin/orders/'
     | '/admin/products/'
+    | '/_public/products/demo/$productId'
     | '/admin/carousel/$carouselId/edit'
     | '/admin/categories/$categoryId/edit'
     | '/admin/products/$productId/edit'
+    | '/admin/products/$productId/edit-v2'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -442,6 +492,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicCategoryIndexRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/admin/products/new-v2': {
+      id: '/admin/products/new-v2'
+      path: '/products/new-v2'
+      fullPath: '/admin/products/new-v2'
+      preLoaderRoute: typeof AdminProductsNewV2RouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/products/new': {
       id: '/admin/products/new'
       path: '/products/new'
@@ -468,6 +525,13 @@ declare module '@tanstack/react-router' {
       path: '/carousel/add'
       fullPath: '/admin/carousel/add'
       preLoaderRoute: typeof AdminCarouselAddRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/carousel/$carouselId': {
+      id: '/admin/carousel/$carouselId'
+      path: '/carousel/$carouselId'
+      fullPath: '/admin/carousel/$carouselId'
+      preLoaderRoute: typeof AdminCarouselCarouselIdRouteImport
       parentRoute: typeof AdminRoute
     }
     '/_public/products/$productId': {
@@ -505,6 +569,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PubliccustomerAccountRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/admin/products/$productId/edit-v2': {
+      id: '/admin/products/$productId/edit-v2'
+      path: '/products/$productId/edit-v2'
+      fullPath: '/admin/products/$productId/edit-v2'
+      preLoaderRoute: typeof AdminProductsProductIdEditV2RouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/products/$productId/edit': {
       id: '/admin/products/$productId/edit'
       path: '/products/$productId/edit'
@@ -521,10 +592,17 @@ declare module '@tanstack/react-router' {
     }
     '/admin/carousel/$carouselId/edit': {
       id: '/admin/carousel/$carouselId/edit'
-      path: '/carousel/$carouselId/edit'
+      path: '/edit'
       fullPath: '/admin/carousel/$carouselId/edit'
       preLoaderRoute: typeof AdminCarouselCarouselIdEditRouteImport
-      parentRoute: typeof AdminRoute
+      parentRoute: typeof AdminCarouselCarouselIdRoute
+    }
+    '/_public/products/demo/$productId': {
+      id: '/_public/products/demo/$productId'
+      path: '/products/demo/$productId'
+      fullPath: '/products/demo/$productId'
+      preLoaderRoute: typeof PublicProductsDemoProductIdRouteImport
+      parentRoute: typeof PublicRoute
     }
   }
 }
@@ -540,6 +618,7 @@ interface PublicRouteChildren {
   PublicProductsProductIdRoute: typeof PublicProductsProductIdRoute
   PublicCategoryIndexRoute: typeof PublicCategoryIndexRoute
   PublicProductsIndexRoute: typeof PublicProductsIndexRoute
+  PublicProductsDemoProductIdRoute: typeof PublicProductsDemoProductIdRoute
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
@@ -553,39 +632,58 @@ const PublicRouteChildren: PublicRouteChildren = {
   PublicProductsProductIdRoute: PublicProductsProductIdRoute,
   PublicCategoryIndexRoute: PublicCategoryIndexRoute,
   PublicProductsIndexRoute: PublicProductsIndexRoute,
+  PublicProductsDemoProductIdRoute: PublicProductsDemoProductIdRoute,
 }
 
 const PublicRouteWithChildren =
   PublicRoute._addFileChildren(PublicRouteChildren)
 
+interface AdminCarouselCarouselIdRouteChildren {
+  AdminCarouselCarouselIdEditRoute: typeof AdminCarouselCarouselIdEditRoute
+}
+
+const AdminCarouselCarouselIdRouteChildren: AdminCarouselCarouselIdRouteChildren =
+  {
+    AdminCarouselCarouselIdEditRoute: AdminCarouselCarouselIdEditRoute,
+  }
+
+const AdminCarouselCarouselIdRouteWithChildren =
+  AdminCarouselCarouselIdRoute._addFileChildren(
+    AdminCarouselCarouselIdRouteChildren,
+  )
+
 interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminCarouselCarouselIdRoute: typeof AdminCarouselCarouselIdRouteWithChildren
   AdminCarouselAddRoute: typeof AdminCarouselAddRoute
   AdminCategoriesNewRoute: typeof AdminCategoriesNewRoute
   AdminOrdersOrderIdRoute: typeof AdminOrdersOrderIdRoute
   AdminProductsNewRoute: typeof AdminProductsNewRoute
+  AdminProductsNewV2Route: typeof AdminProductsNewV2Route
   AdminCarouselIndexRoute: typeof AdminCarouselIndexRoute
   AdminCategoriesIndexRoute: typeof AdminCategoriesIndexRoute
   AdminOrdersIndexRoute: typeof AdminOrdersIndexRoute
   AdminProductsIndexRoute: typeof AdminProductsIndexRoute
-  AdminCarouselCarouselIdEditRoute: typeof AdminCarouselCarouselIdEditRoute
   AdminCategoriesCategoryIdEditRoute: typeof AdminCategoriesCategoryIdEditRoute
   AdminProductsProductIdEditRoute: typeof AdminProductsProductIdEditRoute
+  AdminProductsProductIdEditV2Route: typeof AdminProductsProductIdEditV2Route
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
+  AdminCarouselCarouselIdRoute: AdminCarouselCarouselIdRouteWithChildren,
   AdminCarouselAddRoute: AdminCarouselAddRoute,
   AdminCategoriesNewRoute: AdminCategoriesNewRoute,
   AdminOrdersOrderIdRoute: AdminOrdersOrderIdRoute,
   AdminProductsNewRoute: AdminProductsNewRoute,
+  AdminProductsNewV2Route: AdminProductsNewV2Route,
   AdminCarouselIndexRoute: AdminCarouselIndexRoute,
   AdminCategoriesIndexRoute: AdminCategoriesIndexRoute,
   AdminOrdersIndexRoute: AdminOrdersIndexRoute,
   AdminProductsIndexRoute: AdminProductsIndexRoute,
-  AdminCarouselCarouselIdEditRoute: AdminCarouselCarouselIdEditRoute,
   AdminCategoriesCategoryIdEditRoute: AdminCategoriesCategoryIdEditRoute,
   AdminProductsProductIdEditRoute: AdminProductsProductIdEditRoute,
+  AdminProductsProductIdEditV2Route: AdminProductsProductIdEditV2Route,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

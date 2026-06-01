@@ -17,7 +17,7 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useCategories } from '@/hooks/use-category'
 import { useCreateProduct } from '@/hooks/use-product'
-import type { B2BTier, CreateProductFormDetails, Dimensions } from '@/types/product'
+import type { CreateProductFormDetails, Dimensions } from '@/types/product'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, ImagePlus, Layers, Loader2, Package, Plus, Trash2, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
@@ -27,6 +27,26 @@ export const Route = createFileRoute('/admin/products/new')({
   component: AddProduct,
 })
 
+// ─── Local types ────────────────────────────────────────────────────────────
+
+interface VariantOption {
+  name: string
+  values: string[]
+  input: string
+}
+
+interface VariantRow {
+  sku: string
+  attributes: Record<string, string>
+  stock: number
+  price?: number
+  sellingPrice?: number
+  weight?: number
+  dimensions?: Dimensions
+}
+
+// ─── Component ──────────────────────────────────────────────────────────────
+
 function AddProduct() {
   const [formData, setFormData] = useState<CreateProductFormDetails>({
     name: '',
@@ -34,16 +54,19 @@ function AddProduct() {
     description: '',
     price: 0,
     sellingPrice: 0,
-    sku: '',
     stock: 0,
     weight: 0,
     dimensions: { length: 0, width: 0, height: 0 },
-    b2bPricingTiers: [],
     isCODAvailable: false,
     images: [],
   })
+
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const [variantOptions, setVariantOptions] = useState<VariantOption[]>([])
+  const [variants, setVariants] = useState<VariantRow[]>([])
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const createProduct = useCreateProduct()
@@ -52,7 +75,12 @@ function AddProduct() {
 
   const navigate = useNavigate({ from: '/admin/products/new' })
 
-  const handleInputChange = (field: keyof CreateProductFormDetails, value: string | boolean | number) => {
+  // ── Basic field handlers ──────────────────────────────────────────────────
+
+  const handleInputChange = (
+    field: keyof CreateProductFormDetails,
+    value: string | boolean | number,
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -63,48 +91,18 @@ function AddProduct() {
     }))
   }
 
-  // B2B Tier Handlers
-  const addB2BTier = () => {
-    setFormData((prev) => ({
-      ...prev,
-      b2bPricingTiers: [
-        ...prev.b2bPricingTiers,
-        { minQty: 0, maxQty: null, price: 0 },
-      ],
-    }))
-  }
+  // ── Image handlers ────────────────────────────────────────────────────────
 
-  const updateB2BTier = (index: number, field: keyof B2BTier, value: string) => {
-    setFormData((prev) => {
-      const tiers = [...prev.b2bPricingTiers]
-      tiers[index] = {
-        ...tiers[index],
-        [field]: field === 'maxQty' && value === '' ? null : parseFloat(value) || 0,
-      }
-      return { ...prev, b2bPricingTiers: tiers }
-    })
-  }
-
-  const removeB2BTier = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      b2bPricingTiers: prev.b2bPricingTiers.filter((_, i) => i !== index),
-    }))
-  }
-
-  // Image Handlers
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length === 0) return
 
-    const newImages = [...formData.images, ...files]
-    setFormData((prev) => ({ ...prev, images: newImages }))
+    setFormData((prev) => ({ ...prev, images: [...prev.images, ...files] }))
 
     files.forEach((file) => {
       const reader = new FileReader()
-      reader.onloadend = () => {
+      reader.onloadend = () =>
         setImagePreviews((prev) => [...prev, reader.result as string])
-      }
       reader.readAsDataURL(file)
     })
 
@@ -119,26 +117,138 @@ function AddProduct() {
     setImagePreviews((prev) => prev.filter((_, i) => i !== index))
   }
 
+  // ── Variant-option handlers ───────────────────────────────────────────────
+
+  const addVariantOption = () => {
+    setVariantOptions((prev) =>  [...prev, {
+      name: '',
+      values: [],
+      input: '',
+    },])
+  }
+
+  const updateVariantOptionName = (index: number, name: string) => {
+    setVariantOptions((prev) => {
+      const next = [...prev]
+      next[index] = { ...next[index], name }
+      return next
+    })
+  }
+
+  const updateVariantOptionValues = (index: number, raw: string) => {
+    const values = raw.split(',').map((v) => v.trim()).filter(Boolean)
+    setVariantOptions((prev) => {
+      const next = [...prev]
+      next[index] = {
+        ...next[index], 
+        input: raw, values,
+      }
+
+      return next
+    })
+  }
+
+  const removeVariantOption = (index: number) => {
+    setVariantOptions((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  // ── Variant-row handlers ──────────────────────────────────────────────────
+
+  const addVariantRow = () => {
+    // Pre-fill attributes from current option names
+    const attributes: Record<string, string> = {}
+    variantOptions.forEach((opt) => {
+      if (opt.name) attributes[opt.name.toLowerCase().trim()] = ''
+    })
+    setVariants((prev) => [
+      ...prev,
+      { sku: '', attributes, stock: 0 },
+    ])
+  }
+
+  const updateVariantField = (
+    rowIndex: number,
+    field: keyof Omit<VariantRow, 'attributes' | 'dimensions'>,
+    value: string,
+  ) => {
+    setVariants((prev) => {
+      const next = [...prev]
+      next[rowIndex] = {
+        ...next[rowIndex],
+        [field]: field === 'sku' ? value : parseFloat(value) || 0,
+      }
+      return next
+    })
+  }
+
+  const updateVariantAttribute = (
+    rowIndex: number,
+    attrKey: string,
+    value: string,
+  ) => {
+    setVariants((prev) => {
+      const next = [...prev]
+      next[rowIndex] = {
+        ...next[rowIndex],
+        attributes: { ...next[rowIndex].attributes, [attrKey]: value },
+      }
+      return next
+    })
+  }
+
+  const updateVariantDimension = (
+    rowIndex: number,
+    axis: keyof Dimensions,
+    value: string,
+  ) => {
+    setVariants((prev) => {
+      const next = [...prev]
+      const existing = next[rowIndex].dimensions ?? { length: 0, width: 0, height: 0 }
+      next[rowIndex] = {
+        ...next[rowIndex],
+        dimensions: { ...existing, [axis]: parseFloat(value) || 0 },
+      }
+      return next
+    })
+  }
+
+  const removeVariantRow = (index: number) => {
+    setVariants((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const hasVariants = variants.length > 0
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
     try {
       const data = new FormData()
+
       data.append('name', formData.name)
       data.append('category', formData.category)
       data.append('description', formData.description)
       data.append('price', formData.price.toString())
       data.append('sellingPrice', formData.sellingPrice.toString())
-      data.append('sku', formData.sku)
-      data.append('stock', formData.stock.toString())
       data.append('weight', formData.weight.toString())
       data.append('dimensions', JSON.stringify(formData.dimensions))
-      data.append('b2bPricingTiers', JSON.stringify(formData.b2bPricingTiers))
       data.append('isCODAvailable', formData.isCODAvailable.toString())
 
-      formData.images.forEach((file, index) => {
-        data.append(`productImages[${index}]`, file)
+      // Stock is only meaningful when there are no variants.
+      // The backend resets it to 0 anyway when variants are present.
+      if (!hasVariants) {
+        data.append('stock', formData.stock.toString())
+      }
+
+      // Variant options & variants
+      data.append('variantOptions', JSON.stringify(variantOptions))
+      data.append('variants', JSON.stringify(variants))
+
+      // Images — backend reads req.files so use a consistent field name
+      formData.images.forEach((file) => {
+        data.append('productImages', file)
       })
 
       await createProduct.mutateAsync(data as any)
@@ -152,17 +262,20 @@ function AddProduct() {
     }
   }
 
+  // ── Validation ────────────────────────────────────────────────────────────
+
   const isFormValid =
     formData.name &&
     formData.category &&
-    formData.price &&
-    formData.sellingPrice &&
-    formData.sku &&
-    formData.weight &&
-    formData.dimensions.length &&
-    formData.dimensions.width &&
-    formData.dimensions.height &&
+    formData.price > 0 &&
+    formData.sellingPrice > 0 &&
+    formData.weight > 0 &&
+    formData.dimensions.length > 0 &&
+    formData.dimensions.width > 0 &&
+    formData.dimensions.height > 0 &&
     formData.images.length > 0
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-background">
@@ -188,7 +301,7 @@ function AddProduct() {
       <div className="max-w-5xl mx-auto px-6 py-8">
         <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Product Images */}
+          {/* ── Product Images ─────────────────────────────────────────────── */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base font-medium flex items-center gap-2">
@@ -250,7 +363,7 @@ function AddProduct() {
             </CardContent>
           </Card>
 
-          {/* Product Information */}
+          {/* ── Product Information ────────────────────────────────────────── */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base font-medium">Product Information</CardTitle>
@@ -271,51 +384,35 @@ function AddProduct() {
                 />
               </div>
 
-              {/* SKU & Category */}
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sku" className="text-xs font-medium uppercase tracking-wide">
-                    SKU <span className="text-primary">*</span>
-                  </Label>
-                  <Input
-                    id="sku"
-                    placeholder="e.g. WBH-001"
-                    value={formData.sku}
-                    onChange={(e) => handleInputChange('sku', e.target.value)}
-                    className="border-border"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="category" className="text-xs font-medium uppercase tracking-wide">
-                    Category <span className="text-primary">*</span>
-                  </Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value) => handleInputChange('category', value)}
-                    disabled={isLoading}
-                  >
-                    <SelectTrigger className="border-border">
-                      <SelectValue
-                        placeholder={isLoading ? 'Loading categories...' : 'Select a category'}
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {isLoading ? (
-                        <SelectItem value="loading" disabled>Loading...</SelectItem>
-                      ) : (categories ?? []).length > 0 ? (
-                        (categories ?? []).map((cat) => (
-                          <SelectItem key={cat._id} value={cat._id}>
-                            {cat.name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="empty" disabled>No categories found</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Category */}
+              <div className="space-y-2">
+                <Label htmlFor="category" className="text-xs font-medium uppercase tracking-wide">
+                  Category <span className="text-primary">*</span>
+                </Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => handleInputChange('category', value)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger className="border-border">
+                    <SelectValue
+                      placeholder={isLoading ? 'Loading categories...' : 'Select a category'}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isLoading ? (
+                      <SelectItem value="loading" disabled>Loading...</SelectItem>
+                    ) : (categories ?? []).length > 0 ? (
+                      (categories ?? []).map((cat) => (
+                        <SelectItem key={cat._id} value={cat._id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="empty" disabled>No categories found</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Description */}
@@ -365,7 +462,9 @@ function AddProduct() {
                       step="0.01"
                       placeholder="0.00"
                       value={formData.sellingPrice || ''}
-                      onChange={(e) => handleInputChange('sellingPrice', parseFloat(e.target.value) || 0)}
+                      onChange={(e) =>
+                        handleInputChange('sellingPrice', parseFloat(e.target.value) || 0)
+                      }
                       className="border-border pl-7"
                       required
                     />
@@ -375,12 +474,14 @@ function AddProduct() {
 
               {/* Discount Preview */}
               {!!formData.price && !!formData.sellingPrice && (
-                <DiscountPreview formData={{ price: formData.price, sellingPrice: formData.sellingPrice }} />
+                <DiscountPreview
+                  formData={{ price: formData.price, sellingPrice: formData.sellingPrice }}
+                />
               )}
             </CardContent>
           </Card>
 
-          {/* Inventory & Shipping */}
+          {/* ── Inventory & Shipping ───────────────────────────────────────── */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base font-medium flex items-center gap-2">
@@ -389,8 +490,8 @@ function AddProduct() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Stock & Weight */}
-              <div className="grid sm:grid-cols-2 gap-4">
+              {/* Stock — hidden when variants are present (backend ignores it) */}
+              {!hasVariants && (
                 <div className="space-y-2">
                   <Label htmlFor="stock" className="text-xs font-medium uppercase tracking-wide">
                     Stock Quantity
@@ -404,22 +505,29 @@ function AddProduct() {
                     className="border-border"
                   />
                 </div>
+              )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="weight" className="text-xs font-medium uppercase tracking-wide">
-                    Weight (grams) <span className="text-primary">*</span>
-                  </Label>
-                  <Input
-                    id="weight"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={formData.weight || ''}
-                    onChange={(e) => handleInputChange('weight', parseFloat(e.target.value) || 0)}
-                    className="border-border"
-                    required
-                  />
-                </div>
+              {hasVariants && (
+                <p className="text-xs text-muted-foreground border border-dashed border-border rounded-lg px-4 py-3">
+                  Stock is managed per-variant when variants are configured.
+                </p>
+              )}
+
+              {/* Weight */}
+              <div className="space-y-2">
+                <Label htmlFor="weight" className="text-xs font-medium uppercase tracking-wide">
+                  Weight (grams) <span className="text-primary">*</span>
+                </Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.weight || ''}
+                  onChange={(e) => handleInputChange('weight', parseFloat(e.target.value) || 0)}
+                  className="border-border"
+                  required
+                />
               </div>
 
               {/* Dimensions */}
@@ -461,84 +569,274 @@ function AddProduct() {
             </CardContent>
           </Card>
 
-          {/* B2B Pricing Tiers */}
+          {/* ── Variant Options ────────────────────────────────────────────── */}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-medium flex items-center gap-2">
                   <Layers className="h-4 w-4 text-primary" />
-                  B2B Pricing Tiers
+                  Variant Options
                   <Badge variant="secondary" className="text-[10px] font-normal">Optional</Badge>
                 </CardTitle>
-                <Button type="button" variant="outline" size="sm" onClick={addB2BTier} className="h-8 gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addVariantOption}
+                  className="h-8 gap-1.5"
+                >
                   <Plus className="h-3.5 w-3.5" />
-                  Add Tier
+                  Add Option
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {formData.b2bPricingTiers.length === 0 ? (
+              {variantOptions.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">
-                  No B2B tiers configured. Add tiers to offer bulk pricing.
+                  No variant options. Add options like Color or Size to enable variants.
                 </p>
               ) : (
-                <>
-                  {/* Column Headers */}
-                  <div className="grid grid-cols-[1fr_1fr_1fr_36px] gap-3 px-1">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Min Qty</p>
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Max Qty</p>
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Price (₹)</p>
-                    <span />
-                  </div>
-
-                  {formData.b2bPricingTiers.map((tier, index) => (
-                    <div key={index} className="grid grid-cols-[1fr_1fr_1fr_36px] gap-3 items-center">
+                variantOptions.map((opt, index) => (
+                  <div key={index} className="grid grid-cols-[1fr_2fr_36px] gap-3 items-start">
+                    <div className="space-y-1">
+                      {index === 0 && (
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Option Name
+                        </p>
+                      )}
                       <Input
-                        type="number"
-                        placeholder="Min"
-                        value={tier.minQty || ''}
-                        onChange={(e) => updateB2BTier(index, 'minQty', e.target.value)}
+                        placeholder="e.g. Color"
+                        value={opt.name}
+                        onChange={(e) => updateVariantOptionName(index, e.target.value)}
                         className="border-border h-9"
                       />
-                      <Input
-                        type="number"
-                        placeholder="No limit"
-                        value={tier.maxQty ?? ''}
-                        onChange={(e) => updateB2BTier(index, 'maxQty', e.target.value)}
-                        className="border-border h-9"
-                      />
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={tier.price || ''}
-                          onChange={(e) => updateB2BTier(index, 'price', e.target.value)}
-                          className="border-border h-9 pl-7"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeB2BTier(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </div>
-                  ))}
-
-                  <p className="text-xs text-muted-foreground pt-1">
-                    B2B price must be ≤ selling price. Leave Max Qty blank for an open-ended tier.
-                  </p>
-                </>
+                    <div className="space-y-1">
+                      {index === 0 && (
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Values (comma-separated)
+                        </p>
+                      )}
+                      <Input
+                        placeholder="e.g. Red, Blue, Green"
+                        value={opt.input}
+                        onChange={(e) => updateVariantOptionValues(index, e.target.value)}
+                        className="border-border h-9"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className={`h-9 w-9 text-muted-foreground hover:text-destructive ${index === 0 ? `mt-5` : ``}`}
+                      onClick={() => removeVariantOption(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
               )}
             </CardContent>
           </Card>
 
-          {/* Actions */}
+          {/* ── Variants (SKU rows) ────────────────────────────────────────── */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-medium flex items-center gap-2">
+                  Variants
+                  <Badge variant="secondary" className="text-[10px] font-normal">Optional</Badge>
+                </CardTitle>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addVariantRow}
+                  className="h-8 gap-1.5"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add Variant
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {variants.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">
+                  No variants added. Each variant needs a unique SKU and stock quantity.
+                </p>
+              ) : (
+                variants.map((variant, rowIndex) => (
+                  <div
+                    key={rowIndex}
+                    className="rounded-lg border border-border p-4 space-y-3 relative"
+                  >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-3 right-3 h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeVariantRow(rowIndex)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+
+                    {/* SKU & Stock */}
+                    <div className="grid sm:grid-cols-2 gap-3 pr-10">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium uppercase tracking-wide">
+                          SKU <span className="text-primary">*</span>
+                        </Label>
+                        <Input
+                          placeholder="e.g. WBH-RED-001"
+                          value={variant.sku}
+                          onChange={(e) => updateVariantField(rowIndex, 'sku', e.target.value)}
+                          className="border-border h-9"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium uppercase tracking-wide">
+                          Stock <span className="text-primary">*</span>
+                        </Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={variant.stock || ''}
+                          onChange={(e) => updateVariantField(rowIndex, 'stock', e.target.value)}
+                          className="border-border h-9"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Attribute values (one input per option) */}
+                    {variantOptions.length > 0 && (
+                      <div className="grid sm:grid-cols-3 gap-3">
+                        {variantOptions.map((opt) => {
+                          const key = opt.name.toLowerCase().trim()
+                          return (
+                            <div key={key} className="space-y-1">
+                              <Label className="text-xs font-medium uppercase tracking-wide">
+                                {opt.name || 'Attribute'}
+                              </Label>
+                              <Select
+                                value={variant.attributes[key] ?? ''}
+                                onValueChange={(val) =>
+                                  updateVariantAttribute(rowIndex, key, val)
+                                }
+                              >
+                                <SelectTrigger className="border-border h-9">
+                                  <SelectValue placeholder="Select…" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {opt.values.map((v) => (
+                                    <SelectItem key={v} value={v}>
+                                      {v}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {/* Optional overrides */}
+                    <details className="group">
+                      <summary className="text-xs text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors list-none flex items-center gap-1">
+                        <Plus className="h-3 w-3 group-open:rotate-45 transition-transform" />
+                        Override price / weight / dimensions for this variant
+                      </summary>
+
+                      <div className="mt-3 space-y-3">
+                        {/* Price overrides */}
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium uppercase tracking-wide">
+                              Price (MRP)
+                            </Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder={`${formData.price || `—`} (default)`}
+                                value={variant.price ?? ''}
+                                onChange={(e) =>
+                                  updateVariantField(rowIndex, 'price', e.target.value)
+                                }
+                                className="border-border h-9 pl-7"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium uppercase tracking-wide">
+                              Selling Price
+                            </Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder={`${formData.sellingPrice || `—`} (default)`}
+                                value={variant.sellingPrice ?? ''}
+                                onChange={(e) =>
+                                  updateVariantField(rowIndex, 'sellingPrice', e.target.value)
+                                }
+                                className="border-border h-9 pl-7"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Weight override */}
+                        <div className="space-y-1">
+                          <Label className="text-xs font-medium uppercase tracking-wide">
+                            Weight (grams)
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder={`${formData.weight || `—`} (default)`}
+                            value={variant.weight ?? ''}
+                            onChange={(e) =>
+                              updateVariantField(rowIndex, 'weight', e.target.value)
+                            }
+                            className="border-border h-9"
+                          />
+                        </div>
+
+                        {/* Dimensions override */}
+                        <div className="space-y-1">
+                          <Label className="text-xs font-medium uppercase tracking-wide">
+                            Dimensions (cm)
+                          </Label>
+                          <div className="grid grid-cols-3 gap-3">
+                            {(['length', 'width', 'height'] as const).map((axis) => (
+                              <div key={axis} className="space-y-1">
+                                <p className="text-xs text-muted-foreground capitalize">{axis}</p>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={variant.dimensions?.[axis] ?? ''}
+                                  onChange={(e) =>
+                                    updateVariantDimension(rowIndex, axis, e.target.value)
+                                  }
+                                  className="border-border h-9"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </details>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── Actions ────────────────────────────────────────────────────── */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
             <Button
               type="button"
@@ -548,7 +846,11 @@ function AddProduct() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!isFormValid || isSubmitting} className="min-w-[140px]">
+            <Button
+              type="submit"
+              disabled={!isFormValid || isSubmitting}
+              className="min-w-[140px]"
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

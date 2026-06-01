@@ -18,14 +18,6 @@ export interface CreateCategoryFormDetails {
   image: File | null
 }
 
-// export interface CreateCategoryFormDetails {
-//     name: string; 
-//     slug: string;
-//     icon: string;
-//     image: File;
-//     order: number;
-// }
-
 export interface CategoryList {
     result: CategoryDetails[];
     total: number;

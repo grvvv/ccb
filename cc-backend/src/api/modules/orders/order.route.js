@@ -8,7 +8,8 @@ const {
     updateOrder,
     updateOrderStatus,
     updatePaymentStatus,
-    cancelUnpaidOrder,
+    cancelOrder,
+    deleteUnpaidOrder,
     deleteOrder,
     getMyOrders
 } = require("./order.controller");
@@ -27,7 +28,8 @@ router.patch("/update/:id", authorize(['admin']), bsonChecker, updateOrder);
 router.patch("/update-status/:id", authorize(['admin']), bsonChecker, updateOrderStatus);
 router.patch("/update-payment/:id", authorize(['admin']), bsonChecker, updatePaymentStatus);
 router.delete("/delete/:id", authorize(['admin']), bsonChecker, deleteOrder);
-router.delete("/unpaid/:id", bsonChecker, cancelUnpaidOrder);
+router.delete("/unpaid/:id", bsonChecker, deleteUnpaidOrder);
+router.delete("/cancel/:id", bsonChecker, cancelOrder);
 
 
 router.get("/:id", bsonChecker, getOrderById);

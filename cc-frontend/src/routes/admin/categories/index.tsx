@@ -1,6 +1,5 @@
 // routes/admin/categories/index.tsx
 
-
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,9 +23,10 @@ import { useCategories, useDeleteCategory } from '@/hooks/use-category'
 import type { CategoryDetails } from '@/types/category'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { FolderOpen, FolderPlus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { debounce } from 'lodash'
+import { useMemo, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { DataTable, type ColumnDef } from '@/components/shared/data-display/data-table'
+import { DataTable, type ColumnDef, type SortState } from '@/components/shared/data-display/data-table'
 
 export const Route = createFileRoute('/admin/categories/')({
   component: CategoriesPage,
@@ -40,12 +40,24 @@ function getCategoryName(parent: CategoryDetails['parent']) {
 
 function CategoriesPage() {
   const navigate = useNavigate()
-  const { data: categoriesResponse, isLoading } = useCategories()
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [sort, setSort] = useState<SortState | undefined>()
+  const { data: categoriesResponse, isLoading } = useCategories({
+    page,
+    limit: pageSize,
+    search: debouncedSearch || undefined,
+  })
   const categories: CategoryDetails[] = categoriesResponse?.result ?? []
+  const total = categoriesResponse?.result?.length ?? 0
 
   const deleteCategory = useDeleteCategory()
   const [deleteTarget, setDeleteTarget] = useState<CategoryDetails | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleSort = (s: SortState) => { setSort(s); setPage(1) }
 
   const handleDelete = async () => {
     if (!deleteTarget) return
@@ -61,14 +73,31 @@ function CategoriesPage() {
     }
   }
 
+  const debouncedSetSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        setDebouncedSearch(value)
+      }, 600),
+    []
+  )
+  const handleSearch = (val: string) => {
+    setSearch(val);
+    setPage(1);
+    debouncedSetSearch(val)
+  }
+
+  useEffect(() => {
+    return () => {
+      debouncedSetSearch.cancel()
+    }
+  }, [debouncedSetSearch])
+
   const columns: ColumnDef<CategoryDetails>[] = [
     {
       key: 'category',
       header: 'Category',
-      sortAccessor: (r) => r.name,
       cell: (row) => (
         <div className="flex items-center gap-3 min-w-0">
-          {/* Image or icon */}
           <div className="shrink-0 h-10 w-10 rounded-xl overflow-hidden bg-secondary border border-border flex items-center justify-center">
             {row.image ? (
               <img src={row.image} alt={row.name} className="h-full w-full object-cover" />
@@ -76,11 +105,8 @@ function CategoriesPage() {
               <span className="text-xl">{row.icon || '📁'}</span>
             )}
           </div>
-
           <div className="min-w-0">
-            <p className="font-medium text-sm text-foreground truncate max-w-[180px]">
-              {row.name}
-            </p>
+            <p className="font-medium text-sm text-foreground truncate max-w-[180px]">{row.name}</p>
             <code className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
               {row.slug}
             </code>
@@ -94,15 +120,12 @@ function CategoriesPage() {
       width: 'w-16',
       align: 'center',
       hideOnMobile: true,
-      cell: (row) => (
-        <span className="text-2xl">{row.icon || '—'}</span>
-      ),
+      cell: (row) => <span className="text-2xl">{row.icon || '—'}</span>,
     },
     {
       key: 'parent',
       header: 'Parent',
       hideOnMobile: true,
-      sortAccessor: (r) => getCategoryName(r.parent) ?? '',
       cell: (row) => {
         const parentName = getCategoryName(row.parent)
         return parentName ? (
@@ -111,9 +134,7 @@ function CategoriesPage() {
             <span className="text-sm text-foreground truncate max-w-[140px]">{parentName}</span>
           </div>
         ) : (
-          <Badge variant="secondary" className="text-[10px] font-normal">
-            Root
-          </Badge>
+          <Badge variant="secondary" className="text-[10px] font-normal">Root</Badge>
         )
       },
     },
@@ -123,7 +144,6 @@ function CategoriesPage() {
       width: 'w-20',
       align: 'center',
       hideOnMobile: true,
-      sortAccessor: (r) => r.order,
       cell: (row) => (
         <Badge variant="secondary" className="text-xs font-mono tabular-nums">
           #{row.order ?? 0}
@@ -145,10 +165,7 @@ function CategoriesPage() {
           <DropdownMenuContent align="end" className="w-36">
             <DropdownMenuItem
               onClick={() =>
-                navigate({
-                  to: '/admin/categories/$categoryId/edit',
-                  params: { categoryId: row._id },
-                })
+                navigate({ to: '/admin/categories/$categoryId/edit', params: { categoryId: row._id } })
               }
             >
               <Pencil className="h-3.5 w-3.5 mr-2" />
@@ -170,7 +187,6 @@ function CategoriesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <div className="border-b border-border bg-card">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
@@ -178,31 +194,36 @@ function CategoriesPage() {
             <p className="text-xs text-muted-foreground mt-0.5">
               {isLoading
                 ? 'Loading…'
-                : `${categories.length} categor${categories.length !== 1 ? 'ies' : 'y'}`}
+                : `${total} categor${total !== 1 ? 'ies' : 'y'}`
+              }
             </p>
           </div>
-          <Button
-            size="sm"
-            onClick={() => navigate({ to: '/admin/categories/new' })}
-            className="gap-1.5"
-          >
+          <Button size="sm" onClick={() => navigate({ to: '/admin/categories/new' })} className="gap-1.5">
             <FolderPlus className="h-4 w-4" />
             Add Category
           </Button>
         </div>
       </div>
 
-      {/* Content */}
       <div className="max-w-6xl mx-auto px-6 py-8">
         <DataTable
           data={categories}
           columns={columns}
           rowKey={(r) => r._id}
           isLoading={isLoading}
+          // Pagination
+          page={page}
+          pageSize={pageSize}
+          totalRows={total}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+          // Search
           searchable
-          searchFields={(r) =>
-            [r.name, r.slug, getCategoryName(r.parent) ?? ''].join(' ')
-          }
+          search={search}
+          onSearchChange={handleSearch}
+          // Sort
+          sort={sort}
+          onSortChange={handleSort}
           emptyMessage="No categories yet. Add your first category to get started."
           mobileSubline={(r) => {
             const parentName = getCategoryName(r.parent)
@@ -215,7 +236,6 @@ function CategoriesPage() {
         />
       </div>
 
-      {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

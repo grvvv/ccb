@@ -28,14 +28,15 @@ export function CartItemRow({ item }: Props) {
         {/* Name + remove */}
         <div className="flex items-start justify-between gap-2">
           <p className="text-sm font-medium leading-tight line-clamp-2">
-            {item.name}
+            {item.name} <br />
+            <span className="text-muted-foreground">{item.sku ? item.sku : "Base"}</span>
           </p>
           <Button
             variant="ghost"
             size="icon"
             disabled={isBusy}
             className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive -mt-0.5"
-            onClick={() => remove(item.product)}
+            onClick={() => remove({productId: item.product, variantId: item.variantId})}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
@@ -62,7 +63,7 @@ export function CartItemRow({ item }: Props) {
               disabled={isBusy || item.quantity <= 1}
               className="h-7 w-7 rounded-none border-0"
               onClick={() =>
-                updateQty({ productId: item.product, quantity: item.quantity - 1 })
+                updateQty({ productId: item.product, variantId: item.variantId, quantity: item.quantity - 1 })
               }
             >
               <Minus className="h-3 w-3" />
@@ -78,7 +79,7 @@ export function CartItemRow({ item }: Props) {
               disabled={isBusy}
               className="h-7 w-7 rounded-none border-0"
               onClick={() =>
-                updateQty({ productId: item.product, quantity: item.quantity + 1 })
+                updateQty({ productId: item.product, variantId: item.variantId, quantity: item.quantity + 1 })
               }
             >
               <Plus className="h-3 w-3" />

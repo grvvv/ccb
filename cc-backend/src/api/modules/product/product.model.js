@@ -1,34 +1,39 @@
 const mongoose = require('mongoose')
 
-const b2bPricingTierSchema = new mongoose.Schema({
-    minQty  : { type: Number, required: true },   // e.g. 10
-    maxQty  : { type: Number, default: null },     // null = unlimited
-    price   : { type: Number, required: true },    // b2b selling price at this tier
-}, { _id: false })
+const variantSchema = new mongoose.Schema({
+    sku             : { type: String, required: true, trim: true, uppercase: true },
+    attributes      : { type: Map, of: String, default: {} },
+    stock           : { type: Number, required: true, min: 0, default: 0 },
+    price           : { type: Number, min: 0  },
+    sellingPrice    : { type: Number, min: 0  },
+    weight          : { type: Number, min: 0 },
+    dimensions      : {
+        length  : { type: Number },
+        width   : { type: Number },
+        height  : { type: Number },
+    },
+}, { _id : true });
 
 const productSchema = mongoose.Schema({
     name            : { type: String, required: true, trim: true },
-    category        : { type: String, required: true, ref: "Category" },
+    category        : { type: mongoose.Schema.Types.ObjectId, required: true, ref: "Category" },
     thumbnail       : { type: String, required: true },
     productImages   : [{ type: String, required: true }],
     description     : { type: String },
-    slug            : { type: String, required: true, lowercase: true },
-
+    slug            : { type: String, required: true, lowercase: true, unique: true },
+    stock           : { type: Number, required: true, min: 0, default: 0 },
     // --- Pricing ---
-    price           : { type: Number, required: true },   // MRP
-    sellingPrice    : {                                    // B2C selling price
-        type     : Number,
-        required : true,
-    },
-    b2bPricingTiers : {                                   // sorted by minQty asc
-        type    : [b2bPricingTierSchema],
-        default : []
-    },
+    price           : { type: Number, required: true, min: 0 },
+    sellingPrice    : { type: Number, required : true, min: 0  },
 
-    sku     : { type: String, required: true, unique: true, trim: true },
-    stock   : { type: Number, required: true, default: 10 },
+    variantOptions: [{
+        name: { type: String, required: true, lowercase: true, trim: true },
+        values: [{ type: String, trim: true }],
+    }],
 
+    variants: { type: [variantSchema], default: [] },
     weight  : { type: Number, required: true },           // in grams
+
     dimensions: {
         length  : { type: Number, required: true },       // in cm
         width   : { type: Number, required: true },
@@ -36,7 +41,12 @@ const productSchema = mongoose.Schema({
     },
 
     isCODAvailable : { type: Boolean, default: false },
-
+    isActive : { type: Boolean, default: true },
 }, { timestamps: true })
+
+productSchema.index(
+  { "variants.sku": 1 },
+  { unique: true, sparse: true }
+);
 
 module.exports = mongoose.model("Product", productSchema);

@@ -47,12 +47,12 @@ function CreateOrder() {
   const addresses = profile?.addresses || []
   const [selectedAddress, setSelectedAddress] = useState<Address | undefined>()
 
-  const updateQuantity = (id: string, newQty: number) => {
+  const updateQuantity = (id: string, newQty: number, variantId: string | null = null) => {
     if (newQty < 1) return
-    updateQtyMutation.mutate({ productId: id, quantity: newQty })
+    updateQtyMutation.mutate({ productId: id, quantity: newQty, variantId })
   }
-  const removeItem = (id: string) => {
-    removeMutation.mutate(id)
+  const removeItem = (id: string, variantId: string | null = null) => {
+    removeMutation.mutate({ productId: id, variantId })
   }
 
   const savings = 0 // if not tracked in cartStore
@@ -69,10 +69,6 @@ function CreateOrder() {
       setIsSubmitting(true);
 
       const orderData: OrderFormData = {
-        items: cartItems.map((item) => ({
-          productId: item.product,
-          quantity: item.quantity,
-        })),
         address: selectedAddress!,
       }
 
@@ -111,7 +107,7 @@ function CreateOrder() {
         modal: {
           ondismiss: async () => {
             try {
-              await orderService.cancelUnpaidOrder(order._id);
+              await orderService.deleteUnpaidOrder(order._id);
               toast.warning("Payment Cancelled")
             } catch (error) {
               toast.error("Error deleting cancelled order");
@@ -124,7 +120,6 @@ function CreateOrder() {
       const razorpay = new window.Razorpay(options);
       razorpay.open();
     } catch (error: any) {
-      console.log(error)
       setPaymentError(error?.response?.data?.message || "Something went wrong");
     } finally {
       setIsSubmitting(false);
@@ -188,15 +183,16 @@ function CreateOrder() {
                             <div className="flex-1 min-w-0 flex flex-col gap-2">
                               {/* Name + remove */}
                               <div className="flex items-start justify-between gap-2">
-                                <h3 className="text-sm font-medium text-foreground line-clamp-2 leading-tight">
+                                <h3 className="text-sm font-medium text-foreground line-clamp-2 leading-tight flex flex-col">
                                   {item.name}
+                                  <p className='text-xs text-muted-foreground'>{item.sku}</p>
                                 </h3>
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="icon"
                                   className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive -mt-0.5"
-                                  onClick={() => removeItem(item.product)}
+                                  onClick={() => removeItem(item.product, item.variantId)}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
@@ -222,7 +218,7 @@ function CreateOrder() {
                                     variant="ghost"
                                     size="icon"
                                     className="h-7 w-7 rounded-none border-0"
-                                    onClick={() => updateQuantity(item.product, item.quantity - 1)}
+                                    onClick={() => updateQuantity(item.product, item.quantity - 1, item.variantId)}
                                     disabled={item.quantity <= 1}
                                   >
                                     <Minus className="h-3 w-3" />
@@ -235,16 +231,20 @@ function CreateOrder() {
                                     variant="ghost"
                                     size="icon"
                                     className="h-7 w-7 rounded-none border-0"
-                                    onClick={() => updateQuantity(item.product, item.quantity + 1)}
+                                    onClick={() => updateQuantity(item.product, item.quantity + 1, item.variantId)}
                                   >
                                     <Plus className="h-3 w-3" />
                                   </Button>
                                 </div>
 
                                 <span className="text-xs text-muted-foreground tabular-nums">
-                                  Total:{' '}
+                                  Weight:{' '}
                                   <span className="font-semibold text-foreground">
-                                    ₹{subtotal.toFixed(2)}
+                                    {item.weight * item.quantity}g
+                                  </span>
+                                  <br/> Total:{' '}
+                                  <span className="font-semibold text-foreground">
+                                    ₹{item.sellingPrice * item.quantity}
                                   </span>
                                 </span>
                               </div>

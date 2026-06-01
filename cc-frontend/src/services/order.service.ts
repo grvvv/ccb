@@ -27,7 +27,7 @@ class OrderService extends BaseApiClient {
     return this.delete<void>(`order/delete/${orderId}/`);
   }
 
-  async cancelUnpaidOrder(orderId: string): Promise<void> {
+  async deleteUnpaidOrder(orderId: string): Promise<void> {
     return this.delete<void>(`order/unpaid/${orderId}/`);
   }
 }

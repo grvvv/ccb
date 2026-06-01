@@ -6,26 +6,32 @@ import { useAddToCart } from "@/hooks/use-cart";
 
 interface ProductCardProps {
   product: ProductDetails;
-  rating?: number;
-  reviewCount?: number;
-  onAddToCart?: (product: ProductDetails) => void;
 }
 
-export default function ProductCard({
-  product,
-}: ProductCardProps) {
+export default function ProductCard({ product }: ProductCardProps) {
   const [added, setAdded] = useState(false);
   const { mutate } = useAddToCart();
 
-  const isOutOfStock = product.stock <= 0;
+  const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
+
+  // For variant products, stock is the sum of all variant stocks.
+  // For simple products, use the top-level stock field directly.
+  const totalStock = hasVariants
+    ? product.variants.reduce((sum: number, v: { stock: number }) => sum + (v.stock ?? 0), 0)
+    : product.stock;
+
+  const isOutOfStock = totalStock <= 0;
+
   const hasDiscount = product.sellingPrice < product.price;
   const discountPercent = hasDiscount
     ? Math.round(((product.price - product.sellingPrice) / product.price) * 100)
     : 0;
 
   const handleAddToCart = () => {
+    // Only reachable for simple (no-variant) products. Variant products
+    // navigate to the detail page instead (see button below).
     setAdded(true);
-    mutate({productId: product._id, quantity: 1});
+    mutate({ productId: product._id, quantity: 1, variantId: null });
     setTimeout(() => setAdded(false), 1500);
   };
 
@@ -49,9 +55,9 @@ export default function ProductCard({
             </div>
           </div>
         )}
-        
+
         <Link
-          to={"/products/$productId"}
+          to="/products/$productId"
           params={{ productId: product._id }}
           className="relative block w-full h-full overflow-hidden bg-muted"
         >
@@ -64,20 +70,33 @@ export default function ProductCard({
           />
         </Link>
 
-        {/* Add to cart button */}
-        <div className="absolute bottom-3 right-3 z-10 flex items-center justify-center rounded-full bg-background text-muted-foreground shadow-lg transition-all duration-300 ease-in-out hover:bg-muted hover:text-primary">
-          <button
-            aria-label="add to cart"
-            onClick={handleAddToCart}
-            disabled={isOutOfStock}
-            className={`w-11 h-11 flex items-center justify-center rounded-full cursor-pointer border-2 font-medium transition-colors duration-300 focus:outline-none
-              ${added
-                ? "bg-green-500 border-green-500 text-white"
-                : "bg-primary text-primary-foreground border-primary hover:bg-primary/90 hover:border-primary hover:text-primary-foreground focus:border-primary focus:bg-primary focus:text-primary-foreground"
-              }`}
-          >
-            <ShoppingBag className="text-xl w-5 h-5" />
-          </button>
+        {/* Cart button — navigates to PDP for variant products, adds directly for simple ones */}
+        <div className="absolute bottom-3 right-3 z-10">
+          {hasVariants ? (
+            // Variant products: can't pick a SKU from a card, send to product page
+            <Link
+              to="/products/$productId"
+              params={{ productId: product._id }}
+              aria-label="Select options"
+              className={`w-11 h-11 flex items-center justify-center rounded-full border-2 font-medium transition-colors duration-300
+                bg-primary text-primary-foreground border-primary hover:bg-primary/90`}
+            >
+              <ShoppingBag className="w-5 h-5" />
+            </Link>
+          ) : (
+            <button
+              aria-label="Add to cart"
+              onClick={handleAddToCart}
+              disabled={isOutOfStock}
+              className={`w-11 h-11 flex items-center justify-center rounded-full cursor-pointer border-2 font-medium transition-colors duration-300 focus:outline-none
+                ${added
+                  ? "bg-green-500 border-green-500 text-white"
+                  : "bg-primary text-primary-foreground border-primary hover:bg-primary/90 focus:border-primary focus:bg-primary focus:text-primary-foreground"
+                }`}
+            >
+              <ShoppingBag className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -87,18 +106,16 @@ export default function ProductCard({
         <span className="text-xs text-muted-foreground">{product.category}</span>
 
         {/* Product name */}
-        <div className="relative mb-1">
-          <Link
-            to={"/products/$productId"}
-            params={{ productId: product._id }}
-            className="text-sm font-medium text-foreground line-clamp-1 hover:text-primary"
-          >
-            {product.name}
-          </Link>
-        </div>
+        <Link
+          to="/products/$productId"
+          params={{ productId: product._id }}
+          className="text-sm font-medium text-foreground line-clamp-1 hover:text-primary"
+        >
+          {product.name}
+        </Link>
 
         {/* Price */}
-        <div className="product-price font-bold flex items-center gap-2">
+        <div className="font-bold flex items-center gap-2">
           <span className="inline-block text-base text-foreground">
             ₹{product.sellingPrice.toFixed(2)}
           </span>
@@ -108,6 +125,13 @@ export default function ProductCard({
             </span>
           )}
         </div>
+
+        {/* Variant hint */}
+        {hasVariants && (
+          <span className="text-xs text-muted-foreground">
+            {product.variants.length} variant{product.variants.length !== 1 ? 's' : ''} available
+          </span>
+        )}
       </div>
     </div>
   );

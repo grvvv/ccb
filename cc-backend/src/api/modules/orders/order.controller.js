@@ -5,42 +5,54 @@ const { buildOrderFromCart } = require("./order.service");
 const { createImageLink } = require("../../utils/link-generator");
 
 exports.createOrder = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { items, address } = req.body;
-    const { orderItems, subtotalAmount, shippingAmount, totalAmount } =
-      await buildOrderFromCart({
-        userId,
-        items,
-        address,
-      });
+    try {
+        const userId = req.user.id;       
+        const existingOrder = await Order.findOne({
+            user: userId,
+            paymentStatus: "CREATED"
+        });
 
-    const razorpayOrder = await razorpay.orders.create({
-      amount: totalAmount * 100,
-      currency: "INR",
-      receipt: `receipt_${Date.now()}`,
-    });
+        if (existingOrder) {
+            return res.status(200).json({
+                message: "Pending order already exists",
+                order: existingOrder
+            });
+        }
 
-    const order = await Order.create({
-      user: userId,
-      items: orderItems,
-      subtotalAmount,
-      shippingAmount,
-      totalAmount,
-      address,
-      razorpayOrderId: razorpayOrder.id,
-    });
+        const { address } = req.body;
+        const { orderItems, subtotalAmount, shippingAmount, totalAmount, totalWeight } =
+            await buildOrderFromCart({
+                userId,
+                address,
+            });
 
-    return res.status(201).json({
-        message: "Order created successfully",
-        order,
-        razorpayOrder,
-    });
-  } catch (error) {
-    return res.status(400).json({
-      message: error.message || "Failed to create order",
-    });
-  }
+        const razorpayOrder = await razorpay.orders.create({
+            amount: totalAmount * 100,
+            currency: "INR",
+            receipt: `receipt_${Date.now()}`,
+        });
+
+        const order = await Order.create({
+            user: userId,
+            items: orderItems,
+            subtotalAmount,
+            shippingAmount,
+            totalAmount,
+            totalWeight,
+            address,
+            razorpayOrderId: razorpayOrder.id,
+        });
+
+        return res.status(201).json({
+            message: "Order created successfully",
+            order,
+            razorpayOrder,
+        });
+    } catch (error) {
+        return res.status(400).json({
+            message: error.message || "Failed to create order",
+        });
+    }
 };
 
 exports.getMyOrders = async (req, res) => {
@@ -73,6 +85,7 @@ exports.getMyOrders = async (req, res) => {
             pages: Math.ceil(total / limit)
         });
     } catch (error) {
+        console.log(error)
         return res.status(500).json({
             error: "Internal Server Error"
         });
@@ -85,24 +98,95 @@ exports.getAllOrders = async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
-        const filter = {};
+        const {
+            user,
+            orderStatus,
+            search
+        } = req.query;
 
-        if (req.query.user) {
-            filter.user = req.query.user;
-        }
+        const match = {};
 
-        if (req.query.orderStatus) {
-            filter.orderStatus = req.query.orderStatus;
-        }
+        if (user) match.user = new mongoose.Types.ObjectId(user);
+        if (orderStatus) match.orderStatus = orderStatus;
 
-        const orders = await Order.find(filter)
-            .populate("user", "name email")
-            .populate("items.product", "name")
-            .skip(skip)
-            .limit(limit)
-            .sort({ createdAt: -1 });
+        const pipeline = [
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "user",
+                    foreignField: "_id",
+                    as: "user"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$user",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $match: {
+                    ...match,
+                    ...(search
+                        ? {
+                            $or: [
+                                {
+                                    _id: {
+                                        $regex: search,
+                                        $options: "i"
+                                    }
+                                },
+                                {
+                                    "user.name": {
+                                        $regex: search,
+                                        $options: "i"
+                                    }
+                                },
+                                {
+                                    "user.email": {
+                                        $regex: search,
+                                        $options: "i"
+                                    }
+                                }
+                            ]
+                        }
+                        : {})
+                }
+            }
+        ];
 
-        const total = await Order.countDocuments(filter);
+        const [orders, totalResult] = await Promise.all([
+            Order.aggregate([
+                ...pipeline,
+                {
+                    $sort: {
+                        createdAt: -1
+                    }
+                },
+                {
+                    $skip: skip
+                },
+                {
+                    $limit: limit
+                },
+                {
+                    $lookup: {
+                        from: "products",
+                        localField: "items.product",
+                        foreignField: "_id",
+                        as: "productDetails"
+                    }
+                }
+            ]),
+            Order.aggregate([
+                ...pipeline,
+                {
+                    $count: "total"
+                }
+            ])
+        ]);
+
+        const total = totalResult[0]?.total || 0;
 
         return res.json({
             message: "Orders Fetched",
@@ -112,6 +196,8 @@ exports.getAllOrders = async (req, res) => {
             pages: Math.ceil(total / limit)
         });
     } catch (error) {
+        console.error(error);
+
         return res.status(500).json({
             error: "Internal Server Error"
         });
@@ -119,31 +205,30 @@ exports.getAllOrders = async (req, res) => {
 };
 
 exports.getOrderById = async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id).populate("user", "name email");
+    try {
+        const order = await Order.findById(req.params.id).populate("user", "name email");
 
-    if (!order)  return res.status(404).json({ message: "Order not found" });
+        if (!order) return res.status(404).json({ message: "Order not found" });
 
-    const formattedOrder = {
-      ...order.toObject(),
-      items: order.items.map((item) => ({
-        ...item.toObject(),
-        image: createImageLink(item.image)
-      }))
-    };
+        const formattedOrder = {
+            ...order.toObject(),
+            items: order.items.map((item) => ({
+                ...item.toObject(),
+                image: createImageLink(item.image)
+            }))
+        };
 
-    return res.status(200).json({
-      message: "Order fetched",
-      result: formattedOrder
-    });
+        return res.status(200).json({
+            message: "Order fetched",
+            result: formattedOrder
+        });
 
-  } catch (error) {
-    console.error(error);
+    } catch (error) {
 
-    return res.status(500).json({
-      message: "Internal Server Error"
-    });
-  }
+        return res.status(500).json({
+            message: "Internal Server Error"
+        });
+    }
 };
 
 exports.updateOrder = async (req, res) => {
@@ -231,24 +316,46 @@ exports.deleteOrder = async (req, res) => {
     }
 };
 
-exports.cancelUnpaidOrder = async (req, res) => {
-  try {
-    const order = await Order.findOne({
-      _id: req.params.id,
-      user: req.user.id,
-    });
+exports.deleteUnpaidOrder = async (req, res) => {
+    try {
+        const order = await Order.findOne({
+            _id: req.params.id,
+            user: req.user.id,
+        });
 
-    if (!order) return res.status(404).json({ message: "Order not found" });
-    if (order.paymentStatus === "PAID") return res.status(400).json({ message: "Paid orders cannot be deleted" });
+        if (!order) return res.status(404).json({ message: "Order not found" });
+        if (order.paymentStatus === "PAID") return res.status(400).json({ message: "Paid orders cannot be deleted" });
 
-    await order.deleteOne();
-    return res.status(201).json({ success: true });
+        await order.deleteOne();
+        return res.status(201).json({ success: true });
 
-  } catch (error) {
-    console.error(error);
+    } catch (error) {
+        console.error(error);
 
-    return res.status(500).json({
-      message: "Internal Server Error"
-    });
-  }
+        return res.status(500).json({
+            message: "Internal Server Error"
+        });
+    }
 };
+
+exports.cancelOrder = async (req, res) => {
+    try {
+        const order = await Order.findOne({
+            _id: req.params.id,
+            user: req.user.id,
+        });
+
+        if (!order) return res.status(404).json({ message: "Order not found" });
+        if (order.paymentStatus !== "PAID") return res.status(400).json({ message: "Unpaid orders cannot be cancelled" });
+
+        order.orderStatus = "CANCELLED";
+        await order.save();
+        return res.status(201).json({ success: true });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: "Internal Server Error"
+        });
+    }
+};
+

@@ -33,32 +33,29 @@ export const Route = createFileRoute('/admin/orders/$orderId')({
 })
 
 const ORDER_STATUSES = [
-    { value: 'PLACED', label: 'Placed', className: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
-    { value: 'CONFIRMED', label: 'Confirmed', className: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
-    { value: 'SHIPPED', label: 'Shipped', className: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
-    { value: 'DELIVERED', label: 'Delivered', className: 'bg-green-500/10 text-green-600 border-green-500/20' },
-    { value: 'CANCELLED', label: 'Cancelled', className: 'bg-red-500/10 text-red-600 border-red-500/20' },
+    { value: 'PLACED',     label: 'Placed',     className: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+    { value: 'CONFIRMED',  label: 'Confirmed',  className: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
+    { value: 'SHIPPED',    label: 'Shipped',    className: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
+    { value: 'DELIVERED',  label: 'Delivered',  className: 'bg-green-500/10 text-green-600 border-green-500/20' },
+    { value: 'CANCELLED',  label: 'Cancelled',  className: 'bg-red-500/10 text-red-600 border-red-500/20' },
 ] as const
 
 const PAYMENT_STATUSES = [
-    { value: 'CREATED', label: 'Created', className: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20' },
-    { value: 'PAID', label: 'Paid', className: 'bg-green-500/10 text-green-600 border-green-500/20' },
-    { value: 'FAILED', label: 'Failed', className: 'bg-red-500/10 text-red-600 border-red-500/20' },
+    { value: 'CREATED',  label: 'Created',  className: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20' },
+    { value: 'PAID',     label: 'Paid',     className: 'bg-green-500/10 text-green-600 border-green-500/20' },
+    { value: 'FAILED',   label: 'Failed',   className: 'bg-red-500/10 text-red-600 border-red-500/20' },
     { value: 'REFUNDED', label: 'Refunded', className: 'bg-slate-500/10 text-slate-600 border-slate-500/20' },
 ] as const
 
 type OrderStatus = (typeof ORDER_STATUSES)[number]['value']
 
-const getOrderStatus = (v: string) => ORDER_STATUSES.find((s) => s.value === v) ?? ORDER_STATUSES[0]
+const getOrderStatus  = (v: string) => ORDER_STATUSES.find((s) => s.value === v) ?? ORDER_STATUSES[0]
 const getPaymentStatus = (v: string | null) => PAYMENT_STATUSES.find((s) => s.value === v) ?? null
 
 const formatDate = (date: string) =>
     new Date(date).toLocaleDateString('en-IN', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
+        month: 'long', day: 'numeric', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
     })
 
 function OrderViewPage() {
@@ -68,6 +65,7 @@ function OrderViewPage() {
     const { data, isLoading, isError } = useOrderDetails(orderId)
     const { mutate: updateOrder, isPending } = useUpdateOrder()
     const order = data?.result
+
     const [orderStatus, setOrderStatus] = useState<OrderStatus | null>(null)
 
     const currentOrderStatus = orderStatus ?? (order?.orderStatus as OrderStatus)
@@ -78,10 +76,7 @@ function OrderViewPage() {
         updateOrder(
             { orderId, orderData: { orderStatus } },
             {
-                onSuccess: () => {
-                    toast.success('Order status updated')
-                    setOrderStatus(null)
-                },
+                onSuccess: () => { toast.success('Order status updated'); setOrderStatus(null) },
                 onError: () => toast.error('Failed to update order'),
             },
         )
@@ -120,11 +115,12 @@ function OrderViewPage() {
         )
     }
 
-    const orderStatusCfg = getOrderStatus(currentOrderStatus)
+    const orderStatusCfg  = getOrderStatus(currentOrderStatus)
     const paymentStatusCfg = getPaymentStatus(order.paymentStatus)
 
     return (
         <div className="min-h-screen bg-background">
+
             {/* ── Sticky Header ───────────────────────────────────────────────── */}
             <div className="border-b border-border bg-card sticky top-0 z-10">
                 <div className="mx-auto max-w-6xl px-6 py-5">
@@ -173,6 +169,7 @@ function OrderViewPage() {
             </div>
 
             <div className="mx-auto max-w-6xl px-6 py-8 space-y-5">
+
                 {/* ── Order Status Control ────────────────────────────────────── */}
                 <Card>
                     <CardHeader className="pb-3">
@@ -192,9 +189,7 @@ function OrderViewPage() {
                                 <SelectContent>
                                     {ORDER_STATUSES.map((s) => (
                                         <SelectItem key={s.value} value={s.value}>
-                                            <span className="flex items-center gap-2">
-                                                {s.label}
-                                            </span>
+                                            {s.label}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -284,79 +279,110 @@ function OrderViewPage() {
                             </CardTitle>
                             <span className="text-xs text-muted-foreground">
                                 {order.items.length} product{order.items.length !== 1 ? 's' : ''} ·{' '}
-                                {order.items.reduce((acc, i) => acc + i.quantity, 0)} units
+                                {order.items.reduce((acc: number, i: any) => acc + i.quantity, 0)} units
+                                {order.totalWeight > 0 && ` · ${order.totalWeight} g`}
                             </span>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                        {order.items.map((item) => (
-                            <div
-                                key={item._id}
-                                className="flex items-center gap-3 rounded-lg border border-border bg-secondary/50 p-3"
-                            >
-                                {/* Product image */}
-                                <div className="h-14 w-14 shrink-0 rounded-md border border-border overflow-hidden bg-background">
-                                    {item.image ? (
-                                        <img
-                                            src={item.image}
-                                            alt={item.name}
-                                            className="h-full w-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="h-full w-full flex items-center justify-center text-muted-foreground">
-                                            <Package className="h-5 w-5 opacity-40" />
-                                        </div>
-                                    )}
-                                </div>
+                        {order.items.map((item: any) => {
+                            // attributes is a plain object e.g. { color: "Red", size: "M" }
+                            const attributeEntries = Object.entries(item.attributes ?? {}) as [string, string][]
 
-                                {/* Details */}
-                                <div className="min-w-0 flex-1">
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-medium text-foreground truncate">
-                                                {item.name}
-                                            </p>
-                                            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                                                <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    ₹{item.sellingPrice.toFixed(2)} each
+                            return (
+                                <div
+                                    key={item.sku}
+                                    className="flex items-start gap-3 rounded-lg border border-border bg-secondary/50 p-3"
+                                >
+                                    {/* Product image */}
+                                    <div className="h-14 w-14 shrink-0 rounded-md border border-border overflow-hidden bg-background">
+                                        {item.image ? (
+                                            <img
+                                                src={item.image}
+                                                alt={item.name}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="h-full w-full flex items-center justify-center">
+                                                <Package className="h-5 w-5 opacity-40 text-muted-foreground" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Details */}
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0 space-y-1">
+                                                <p className="text-sm font-medium text-foreground truncate">
+                                                    {item.name}
                                                 </p>
-                                                {item.price !== item.sellingPrice && (
-                                                    <p className="text-xs line-through text-muted-foreground">
-                                                        MRP ₹{item.price.toFixed(2)}
+
+                                                {/* SKU */}
+                                                <p className="text-xs font-mono text-muted-foreground">
+                                                    SKU: {item.sku}
+                                                </p>
+
+                                                {/* Variant attributes — only shown when non-empty */}
+                                                {attributeEntries.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {attributeEntries.map(([key, value]) => (
+                                                            <span
+                                                                key={key}
+                                                                className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-border bg-background text-muted-foreground capitalize"
+                                                            >
+                                                                {key}: <span className="text-foreground font-medium">{value}</span>
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex items-center gap-3 flex-wrap">
+                                                    <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        ₹{item.sellingPrice.toFixed(2)} each
+                                                    </p>
+                                                    {item.price !== item.sellingPrice && (
+                                                        <p className="text-xs line-through text-muted-foreground">
+                                                            MRP ₹{item.price.toFixed(2)}
+                                                        </p>
+                                                    )}
+                                                    {item.weight > 0 && (
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {item.weight} g
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Line total + product link */}
+                                            <div className="text-right shrink-0 space-y-1">
+                                                <p className="text-sm font-semibold text-primary">
+                                                    ₹{(item.sellingPrice * item.quantity).toFixed(2)}
+                                                </p>
+                                                {item.product ? (
+                                                    <Link
+                                                        to="/products/$productId"
+                                                        params={{ productId: item.product }}
+                                                        className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                                                    >
+                                                        View product
+                                                        <ArrowUpRight className="h-3 w-3" />
+                                                    </Link>
+                                                ) : (
+                                                    <p className="text-[10px] text-muted-foreground italic">
+                                                        Product deleted
                                                     </p>
                                                 )}
                                             </div>
                                         </div>
-
-                                        {/* Price + link */}
-                                        <div className="text-right shrink-0 space-y-1">
-                                            <p className="text-sm font-semibold text-primary">
-                                                ₹{(item.sellingPrice * item.quantity).toFixed(2)}
-                                            </p>
-                                            {item.product && (
-                                                <Link
-                                                    to="/products/$productId"
-                                                    params={{ productId: item.product }}
-                                                    className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-                                                >
-                                                    View product
-                                                    <ArrowUpRight className="h-3 w-3" />
-                                                </Link>
-                                            )}
-                                            {!item.product && (
-                                                <p className="text-[10px] text-muted-foreground italic">
-                                                    Product deleted
-                                                </p>
-                                            )}
-                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            )
+                        })}
                     </CardContent>
                 </Card>
 
+                {/* ── Payment Summary ─────────────────────────────────────────── */}
                 <Card>
                     <CardHeader className="pb-3">
                         <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
@@ -429,6 +455,7 @@ function OrderViewPage() {
                         )}
                     </CardContent>
                 </Card>
+
             </div>
         </div>
     )

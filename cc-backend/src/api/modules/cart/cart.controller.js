@@ -1,7 +1,4 @@
-const Cart = require("./cart.model");
-const Product = require("../product/product.model");
 const { createImageLink } = require("../../utils/link-generator");
-const { getProductPrice, recalcCart } = require("../../utils/business-utils");
 const cartService = require("./cart.service");
 
 exports.addToCart = async (req, res) => {
@@ -9,7 +6,8 @@ exports.addToCart = async (req, res) => {
         const cart = await cartService.addToCart(
             req.user.id,
             req.body.productId,
-            req.body.quantity
+            req.body.quantity,
+            req.body.variantId
         );
 
         return res.status(200).json({
@@ -33,6 +31,7 @@ exports.cartProducts = async (req, res) => {
                 result: {
                     items: [],
                     totalItems: 0,
+                    weight: 0,
                     subtotalAmount: 0,
                     shippingAmount: 0,
                     totalAmount: 0
@@ -65,7 +64,8 @@ exports.updateCartItemQuantity = async (req, res) => {
         const cart = await cartService.updateCartItem(
             req.user.id,
             req.body.productId,
-            req.body.quantity
+            req.body.quantity,
+            req.body.variantId
         );
 
         return res.status(200).json({
@@ -84,7 +84,8 @@ exports.removeFromCart = async (req, res) => {
     try {
         const cart = await cartService.removeFromCart(
             req.user.id,
-            req.params.productId
+            req.params.productId,
+            req.query.variantId
         );
 
         return res.status(200).json({

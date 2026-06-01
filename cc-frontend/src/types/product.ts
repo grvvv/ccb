@@ -1,28 +1,40 @@
+export interface VariantOption {
+  _id: string;
+  name: string;
+  values: string[];
+}
+
+export interface ProductVariant {
+  _id: string;
+  sku: string;
+  attributes: Record<string, string>;
+  stock: number;
+  price?: number;
+  sellingPrice?: number;
+  weight?: number;
+  dimensions?: Dimensions;
+}
+
 export interface ProductDetails {
   _id: string;
   name: string;
   category: string;
   thumbnail: string;
   productImages: string[];
-  description: string;
+  description?: string;
   slug: string;
+  stock: number;
   price: number;
   sellingPrice: number;
-  b2bPricingTiers: B2BTier[];
-  sku: string;
-  stock: number;
+  variantOptions: VariantOption[];
+  variants: ProductVariant[];
   weight: number;
-  dimensions: Dimensions
+  dimensions: Dimensions;
   isCODAvailable: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-
-export interface B2BTier {
-  minQty: number
-  maxQty: number | null
-  price: number
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  hasVariants?: boolean;
 }
 
 export interface Dimensions {
@@ -41,7 +53,6 @@ export interface CreateProductFormDetails {
     stock: number
     weight: number
     dimensions: Dimensions
-    b2bPricingTiers: B2BTier[]
     isCODAvailable: boolean
     images: File[]
 }

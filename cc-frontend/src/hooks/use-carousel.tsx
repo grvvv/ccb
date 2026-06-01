@@ -55,9 +55,9 @@ export function useCreateCarousel() {
   });
 }
 
-export function useCarousels() {
+export function useCarousels(params?: { page?: number; limit?: number; search?: string} )  {
   return useQuery({
-    queryKey: ['carousel', 'list'],
-    queryFn: () => carouselService.list(),
+    queryKey: ['carousel', 'list', params],
+    queryFn: () => carouselService.list(params),
   });
 }

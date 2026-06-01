@@ -6,22 +6,43 @@ const container = require('@containers/awilix');
 const storage = container.resolve('storage');
 
 exports.getCarousel = async (req, res) => {
-    try {
-      let all = await Carousel.find({ isActive: true }).sort({ order: 1 }) 
+  try {
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 10
+    const skip = (page - 1) * limit
 
-      let slides = all.map((slide) => ({
-        ...slide.toObject(),
-        imageUrl: createImageLink(slide.imageUrl),
-      }))
+    const search = req.query.search?.trim()
 
-      return res.status(200).json({
-        message: "Carousels Fetched",
-        result: slides
-      })
-
-    } catch (error) {
-      return res.status(500).json({ message: "Internal Server Error" });
+    const filter = {
+      isActive: true,
     }
+
+    if (search) {
+      filter.title = { $regex: search, $options: 'i' }
+    }
+
+    const total = await Carousel.countDocuments(filter)
+
+    let slides = await Carousel.find(filter)
+      .sort({ order: 1 })
+      .skip(skip)
+      .limit(limit)
+
+    slides = slides.map((slide) => ({
+      ...slide.toObject(),
+      imageUrl: createImageLink(slide.imageUrl),
+    }))
+
+    return res.status(200).json({
+      message: 'Carousels Fetched',
+      result: slides,
+      total,
+      page,
+      limit,
+    })
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal Server Error' })
+  }
 }
 
 exports.getCarouselById = async (req, res) => {

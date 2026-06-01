@@ -14,29 +14,33 @@ export interface Address {
 
 export interface OrderItem {
     productId: string
+    variantId?: string | null
     quantity: number
 }
 
 export interface OrderItemDetails {
     product: string
+    variantId: string | null
+    sku: string | null
+    attributes: Record<string, string>
     name: string
-    quantity: number
-    price: number
     image: string
+    price: number
     sellingPrice: number
-    _id: string
+    quantity: number
+    weight: number
 }
 
 export interface CreateOrderResponse {
-    order: OrderItemDetails,
+    order: OrderDetails,
     razorpayOrder: RazorpayOrder
 }
 
 
 export interface OrderUser {
-  _id: string
-  name: string
-  email: string
+    _id: string
+    name: string
+    email: string
 }
 
 export type OrderStatus = 'PLACED' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
@@ -47,18 +51,18 @@ export interface OrderDetails {
     _id: string
     user: OrderUser
     items: OrderItemDetails[]
-    totalAmount: number
-    shippingAmount: number
     subtotalAmount: number
+    shippingAmount: number
+    totalAmount: number
+    totalWeight: number
     address: Address
     orderStatus: OrderStatus
     paymentStatus: PaymentStatus
-    razorpayOrderId: string | null
+    razorpayOrderId: string
     razorpayPaymentId: string | null
     razorpaySignature: string | null
     createdAt: string
     updatedAt: string
-    __v: number
 }
 
 export interface OrderDetailsResponse {
@@ -67,13 +71,13 @@ export interface OrderDetailsResponse {
 }
 
 export interface OrderList {
-    result: OrderDetails[];
-    total: number;
-    page: number;
-    pages: number;
+    message: string
+    result: OrderDetails[]
+    total: number
+    page: number
+    pages: number
 }
 
 export interface OrderFormData {
-    items: OrderItem[]
     address: Address
 }

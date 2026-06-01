@@ -18,51 +18,50 @@ import {
   SortAsc,
   SortDesc,
 } from 'lucide-react'
-import { useState, useMemo, type ReactNode } from 'react'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { type ReactNode } from 'react'
 
 export interface ColumnDef<T> {
-  /** Unique key for this column */
   key: string
-  /** Header label */
   header: string
-  /** Render cell content. Receives the row and the raw value */
   cell: (row: T) => ReactNode
-  /** Optional: field path used for sorting (dot notation not needed, supply accessor) */
-  sortAccessor?: (row: T) => string | number
-  /** Hide this column on mobile */
+  sortable?: boolean
   hideOnMobile?: boolean
-  /** Column header alignment */
   align?: 'left' | 'center' | 'right'
-  /** Fixed width class e.g. "w-16" */
   width?: string
+}
+
+export interface SortState {
+  key: string
+  dir: 'asc' | 'desc'
 }
 
 export interface DataTableProps<T> {
   data: T[]
   columns: ColumnDef<T>[]
-  /** Row key extractor */
   rowKey: (row: T) => string
-  /** Show search bar */
+
+  // Controlled pagination
+  page: number
+  pageSize: number
+  totalRows: number
+  onPageChange: (page: number) => void
+  onPageSizeChange: (size: number) => void
+
+  // Controlled search
+  search?: string
+  onSearchChange?: (value: string) => void
   searchable?: boolean
-  /** Which fields to include in search (dot-notation keys) */
-  searchFields?: (row: T) => string
-  /** Default rows per page */
-  defaultPageSize?: number
-  /** Slot rendered above the table (e.g. action buttons) */
+
+  // Controlled sort
+  sort?: SortState
+  onSortChange?: (sort: SortState) => void
+
   toolbar?: ReactNode
-  /** Empty state message */
   emptyMessage?: string
-  /** Loading skeleton */
   isLoading?: boolean
-  /** Mobile: render a summary line under the first cell */
   mobileSubline?: (row: T) => ReactNode
   onRowClick?: (row: T) => void
-
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50]
 
@@ -70,66 +69,40 @@ function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse bg-muted rounded ${className}`} />
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function DataTable<T>({
   data,
   columns,
   rowKey,
+  page,
+  pageSize,
+  totalRows,
+  onPageChange,
+  onPageSizeChange,
+  search = '',
+  onSearchChange,
   searchable = true,
-  searchFields,
-  defaultPageSize = 10,
+  sort,
+  onSortChange,
   toolbar,
   emptyMessage = 'No records found.',
   isLoading = false,
   mobileSubline,
-  onRowClick
+  onRowClick,
 }: DataTableProps<T>) {
-  const [search, setSearch] = useState('')
-  const [pageSize, setPageSize] = useState(defaultPageSize)
-  const [page, setPage] = useState(1)
-  const [sortKey, setSortKey] = useState<string | null>(null)
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
-
-  // ── Filter ────────────────────────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    if (!search.trim() || !searchFields) return data
-    const q = search.toLowerCase()
-    return data.filter((row) => searchFields(row).toLowerCase().includes(q))
-  }, [data, search, searchFields])
-
-  // ── Sort ──────────────────────────────────────────────────────────────────
-  const sorted = useMemo(() => {
-    if (!sortKey) return filtered
-    const col = columns.find((c) => c.key === sortKey)
-    if (!col?.sortAccessor) return filtered
-    return [...filtered].sort((a, b) => {
-      const av = col.sortAccessor!(a)
-      const bv = col.sortAccessor!(b)
-      if (av < bv) return sortDir === 'asc' ? -1 : 1
-      if (av > bv) return sortDir === 'asc' ? 1 : -1
-      return 0
-    })
-  }, [filtered, sortKey, sortDir, columns])
-
-  // ── Paginate ──────────────────────────────────────────────────────────────
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
-  const safePage = Math.min(page, totalPages)
-  const paged = sorted.slice((safePage - 1) * pageSize, safePage * pageSize)
+  const totalPages = Math.max(1, Math.ceil(totalRows / pageSize))
 
   const handleSort = (key: string) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
-    } else {
-      setSortKey(key)
-      setSortDir('asc')
-    }
-    setPage(1)
+    if (!onSortChange) return
+    onSortChange({
+      key,
+      dir: sort?.key === key && sort.dir === 'asc' ? 'desc' : 'asc',
+    })
+    onPageChange(1)
   }
 
   const handleSearch = (val: string) => {
-    setSearch(val)
-    setPage(1)
+    onSearchChange?.(val)
+    onPageChange(1)
   }
 
   const alignClass = {
@@ -138,10 +111,8 @@ export function DataTable<T>({
     right: 'text-right',
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
-      {/* Toolbar row */}
       {(searchable || toolbar) && (
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
           {searchable && (
@@ -159,7 +130,7 @@ export function DataTable<T>({
         </div>
       )}
 
-      {/* ── Desktop Table ─────────────────────────────────────────────────── */}
+      {/* Desktop */}
       <div className="hidden sm:block rounded-xl border border-border overflow-hidden bg-card">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -172,16 +143,16 @@ export function DataTable<T>({
                       'px-4 py-3 font-medium text-xs uppercase tracking-wide text-muted-foreground',
                       alignClass[col.align ?? 'left'],
                       col.width ?? '',
-                      col.sortAccessor ? 'cursor-pointer select-none hover:text-foreground transition-colors' : '',
+                      col.sortable ? 'cursor-pointer select-none hover:text-foreground transition-colors' : '',
                     ].join(' ')}
-                    onClick={() => col.sortAccessor && handleSort(col.key)}
+                    onClick={() => col.sortable && handleSort(col.key)}
                   >
                     <span className="inline-flex items-center gap-1.5">
                       {col.header}
-                      {col.sortAccessor && (
+                      {col.sortable && (
                         <span className="text-muted-foreground/40">
-                          {sortKey === col.key ? (
-                            sortDir === 'asc' ? (
+                          {sort?.key === col.key ? (
+                            sort.dir === 'asc' ? (
                               <SortAsc className="h-3 w-3 text-primary" />
                             ) : (
                               <SortDesc className="h-3 w-3 text-primary" />
@@ -207,17 +178,14 @@ export function DataTable<T>({
                     ))}
                   </tr>
                 ))
-              ) : paged.length === 0 ? (
+              ) : data.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={columns.length}
-                    className="px-4 py-12 text-center text-sm text-muted-foreground"
-                  >
+                  <td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-muted-foreground">
                     {emptyMessage}
                   </td>
                 </tr>
               ) : (
-                paged.map((row) => (
+                data.map((row) => (
                   <tr
                     key={rowKey(row)}
                     onClick={() => onRowClick?.(row)}
@@ -246,7 +214,7 @@ export function DataTable<T>({
         </div>
       </div>
 
-      {/* ── Mobile Cards ──────────────────────────────────────────────────── */}
+      {/* Mobile cards — unchanged from before */}
       <div className="sm:hidden space-y-2">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
@@ -255,12 +223,12 @@ export function DataTable<T>({
               <Skeleton className="h-3 w-1/2" />
             </div>
           ))
-        ) : paged.length === 0 ? (
+        ) : data.length === 0 ? (
           <div className="rounded-xl border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
             {emptyMessage}
           </div>
         ) : (
-          paged.map((row) => {
+          data.map((row) => {
             const visibleCols = columns.filter((c) => !c.hideOnMobile)
             const [first, ...rest] = visibleCols
             return (
@@ -272,25 +240,15 @@ export function DataTable<T>({
                   onRowClick ? 'cursor-pointer hover:bg-muted/30 transition-colors' : '',
                 ].join(' ')}
               >
-                {/* Primary row */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="font-medium text-sm text-foreground truncate">
-                      {first?.cell(row)}
-                    </div>
+                    <div className="font-medium text-sm text-foreground truncate">{first?.cell(row)}</div>
                     {mobileSubline && (
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {mobileSubline(row)}
-                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{mobileSubline(row)}</div>
                     )}
                   </div>
-                  {/* Last visible column on right (usually actions) */}
-                  {rest.length > 0 && (
-                    <div className="shrink-0">{rest[rest.length - 1].cell(row)}</div>
-                  )}
+                  {rest.length > 0 && <div className="shrink-0">{rest[rest.length - 1].cell(row)}</div>}
                 </div>
-
-                {/* Middle columns as key-value pairs */}
                 {rest.length > 1 && (
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-1 border-t border-border">
                     {rest.slice(0, -1).map((col) => (
@@ -309,15 +267,15 @@ export function DataTable<T>({
         )}
       </div>
 
-      {/* ── Pagination ────────────────────────────────────────────────────── */}
+      {/* Pagination */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
         <div className="flex items-center gap-2 text-xs text-muted-foreground order-2 sm:order-1">
           <span>Rows per page</span>
           <Select
             value={String(pageSize)}
             onValueChange={(v) => {
-              setPageSize(Number(v))
-              setPage(1)
+              onPageSizeChange(Number(v))
+              onPageChange(1)
             }}
           >
             <SelectTrigger className="h-7 w-16 text-xs">
@@ -325,57 +283,29 @@ export function DataTable<T>({
             </SelectTrigger>
             <SelectContent>
               {PAGE_SIZE_OPTIONS.map((n) => (
-                <SelectItem key={n} value={String(n)}>
-                  {n}
-                </SelectItem>
+                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
               ))}
             </SelectContent>
           </Select>
           <span>
-            {sorted.length === 0
+            {totalRows === 0
               ? '0 results'
-              : `${(safePage - 1) * pageSize + 1}–${Math.min(safePage * pageSize, sorted.length)} of ${sorted.length}`}
+              : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, totalRows)} of ${totalRows}`}
           </span>
         </div>
 
         <div className="flex items-center gap-1 order-1 sm:order-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setPage(1)}
-            disabled={safePage === 1}
-          >
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onPageChange(1)} disabled={page === 1}>
             <ChevronsLeft className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={safePage === 1}
-          >
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onPageChange(page - 1)} disabled={page === 1}>
             <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
-          <span className="text-xs text-muted-foreground px-2">
-            {safePage} / {totalPages}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={safePage === totalPages}
-          >
+          <span className="text-xs text-muted-foreground px-2">{page} / {totalPages}</span>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onPageChange(page + 1)} disabled={page === totalPages}>
             <ChevronRight className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setPage(totalPages)}
-            disabled={safePage === totalPages}
-          >
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onPageChange(totalPages)} disabled={page === totalPages}>
             <ChevronsRight className="h-3.5 w-3.5" />
           </Button>
         </div>
