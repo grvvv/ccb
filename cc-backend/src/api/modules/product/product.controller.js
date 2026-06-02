@@ -266,10 +266,10 @@ exports.addProduct = async (req, res) => {
         }
 
         const uploadedImages = await Promise.all(
-            files.map((file) =>
+            files.map((file, index) =>
                 storage.uploadFile(file, {
                     subdir: "products",
-                    filename: `${slug}-${Date.now()}`,
+                    filename: `${slug}-${index}-${Date.now()}`,
                     resize: { width: 1000 },
                 })
             )
@@ -578,10 +578,10 @@ exports.updateProduct = async (req, res) => {
 
         if (files.length > 0) {
             const uploaded = await Promise.all(
-                files.map((file) =>
+                files.map((file, index) =>
                     storage.uploadFile(file, {
                         subdir: "products",
-                        filename: `product-${Date.now()}`,
+                        filename: `${product.slug}-${index}-${Date.now()}`,
                         resize: { width: 1000 },
                     }),
                 ),

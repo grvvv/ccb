@@ -1,7 +1,7 @@
 const fs = require('fs')
 const fsp = fs.promises;
 const path = require('path');
-const mime = require('mime-types'); // For mimetype to extension
+const sharp = require('sharp');
 const Storage = require('./storage');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
@@ -17,16 +17,21 @@ class ImageStorage extends Storage {
       throw new Error('Invalid file type. Only image uploads are allowed.');
     }
 
-    const extension = mime.extension(file.mimetype) || 'png';
-    const filename = options.filename ? `${options.filename}.${extension}` : `${Date.now()}.${extension}`;
+    const filename = options.filename
+      ? `${options.filename}.webp`
+      : `${Date.now()}.webp`;
 
     const relativePath = path.join(options.subdir || '', filename);
     const filePath = path.join(this.storagePath, relativePath);
 
     await fsp.mkdir(path.dirname(filePath), { recursive: true });
-    await fsp.writeFile(filePath, file.buffer);
 
-    return { 
+    await sharp(file.buffer)
+      .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toFile(filePath);
+
+    return {
       path: relativePath,
       fullPath: filePath,
     };

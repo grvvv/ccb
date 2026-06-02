@@ -32,6 +32,7 @@ export const Route = createFileRoute('/admin/products/$productId/edit')({
 interface VariantOption {
   name: string
   values: string[]
+  input?: string
 }
 
 interface VariantRow {
@@ -713,7 +714,7 @@ function EditProduct() {
                       )}
                       <Input
                         placeholder="e.g. Red, Blue, Green"
-                        value={opt.values.join(', ')}
+                        value={opt.input}
                         onChange={(e) => updateVariantOptionValues(index, e.target.value)}
                         className="border-border h-9"
                       />

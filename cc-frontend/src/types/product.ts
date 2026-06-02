@@ -49,7 +49,6 @@ export interface CreateProductFormDetails {
     description: string
     price: number
     sellingPrice: number
-    sku: string
     stock: number
     weight: number
     dimensions: Dimensions
