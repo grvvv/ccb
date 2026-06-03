@@ -3,21 +3,27 @@ import ProductGrid from '@/components/features/products/product-grid'
 import { useProducts } from '@/hooks/use-product'
 import { useState } from 'react'
 import { HeroCarousel } from '@/components/molecules/hero-carousel'
-import { CategoriesSection } from '@/components/features/category/category-grid'
 import { ArrowRight } from 'lucide-react'
+import CategoryGrid from '@/components/features/category/category-grid'
+import { useCategories } from '@/hooks/use-category'
 
 export const Route = createFileRoute('/_public/')({
   component: RouteComponent,
 })
 
-const LIMIT = 8
+const LIMIT = 12
 
 function RouteComponent() {
-  const [page, setPage] = useState(1)
-  const { data: productResponse, isLoading } = useProducts({ page, limit: LIMIT })
+  const [productPage, setProductPage] = useState(1)
+  const [categoryPage, setCategoryPage] = useState(1)
+  const { data: productResponse, isLoading: productsLoading } = useProducts({ page: productPage, limit: LIMIT })
   const products = productResponse?.result ?? []
-  const total = productResponse?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(total / LIMIT))
+  const totalProducts = productResponse?.total ?? 0
+  const totalProductPages = Math.max(1, Math.ceil(totalProducts / LIMIT))
+  const { data: categoriesResponse, isLoading: categoriesLoading } = useCategories({ page: categoryPage, limit: LIMIT })
+  const categories = categoriesResponse?.result ?? []
+  const totalCategories = categoriesResponse?.total ?? 0
+  const totalCategoryPages = Math.max(1, Math.ceil(totalCategories / LIMIT))
 
   return (
     <div>
@@ -49,7 +55,11 @@ function RouteComponent() {
               <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
           </div>
-          <CategoriesSection />
+          <CategoryGrid
+            categories={categories}
+            isLoading={categoriesLoading}
+            serverPagination={{ currentPage: categoryPage, totalPages: totalCategoryPages, onPageChange: setCategoryPage }}
+          />
         </div>
       </section>
 
@@ -81,8 +91,8 @@ function RouteComponent() {
 
         <ProductGrid
           products={products}
-          isLoading={isLoading}
-          serverPagination={{ currentPage: page, totalPages, onPageChange: setPage }}
+          isLoading={productsLoading}
+          serverPagination={{ currentPage: productPage, totalPages: totalProductPages, onPageChange: setProductPage }}
         />
       </section>
     </div>
