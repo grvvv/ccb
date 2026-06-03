@@ -11,19 +11,20 @@ export const Route = createFileRoute('/_public/')({
   component: RouteComponent,
 })
 
-const LIMIT = 12
+const CATEGORIES_LIMIT = 20
+const PRODUCTS_LIMIT = 6
 
 function RouteComponent() {
   const [productPage, setProductPage] = useState(1)
   const [categoryPage, setCategoryPage] = useState(1)
-  const { data: productResponse, isLoading: productsLoading } = useProducts({ page: productPage, limit: LIMIT })
+  const { data: productResponse, isLoading: productsLoading } = useProducts({ page: productPage, limit: PRODUCTS_LIMIT })
   const products = productResponse?.result ?? []
   const totalProducts = productResponse?.total ?? 0
-  const totalProductPages = Math.max(1, Math.ceil(totalProducts / LIMIT))
-  const { data: categoriesResponse, isLoading: categoriesLoading } = useCategories({ page: categoryPage, limit: LIMIT })
+  const totalProductPages = productResponse?.pages ?? Math.max(1, Math.ceil(totalProducts / PRODUCTS_LIMIT))
+  const { data: categoriesResponse, isLoading: categoriesLoading } = useCategories({ page: categoryPage, limit: CATEGORIES_LIMIT })
   const categories = categoriesResponse?.result ?? []
   const totalCategories = categoriesResponse?.total ?? 0
-  const totalCategoryPages = Math.max(1, Math.ceil(totalCategories / LIMIT))
+  const totalCategoryPages = categoriesResponse?.pages ?? Math.max(1, Math.ceil(totalCategories / CATEGORIES_LIMIT)) 
 
   return (
     <div>
@@ -39,10 +40,10 @@ function RouteComponent() {
                 Categories
               </p>
               <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-foreground leading-tight">
-                Browse All Products
+                Browse All Categories
               </h2>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                Find exactly what you're looking for
+                Find exactly based on our featured categories
               </p>
             </div>
 

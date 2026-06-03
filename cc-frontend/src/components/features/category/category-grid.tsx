@@ -46,7 +46,7 @@ export default function CategoryGrid({
     <>
         {/* Mobile: 4-column grid */}
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-3 md:gap-6">
+          <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-10 gap-3 sm:gap-3 md:gap-6">
             {categories.map((cat, i) => (
               <CategoryCard key={cat._id} category={cat} index={i} />
             ))}
